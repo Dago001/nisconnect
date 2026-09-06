@@ -1,6 +1,9 @@
 <?php
 
+use App\Providers\AppServiceProvider;
+use App\Providers\PersonnelServiceProvider;
+
 return [
-    App\Providers\AppServiceProvider::class,
-    App\Providers\PersonnelServiceProvider::class,
+    AppServiceProvider::class,
+    PersonnelServiceProvider::class,
 ];

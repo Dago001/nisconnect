@@ -15,7 +15,7 @@ class StartChatRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'service_number' => ['required', 'string', new ServiceNumber()],
+            'service_number' => ['required', 'string', new ServiceNumber],
         ];
     }
 }

@@ -14,9 +14,7 @@ use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 
 class ChatController extends Controller
 {
-    public function __construct(private readonly ConversationService $conversations)
-    {
-    }
+    public function __construct(private readonly ConversationService $conversations) {}
 
     public function index(Request $request): AnonymousResourceCollection
     {

@@ -16,9 +16,7 @@ class MessageCreated implements ShouldBroadcast
     use InteractsWithSockets;
     use SerializesModels;
 
-    public function __construct(public Message $message)
-    {
-    }
+    public function __construct(public Message $message) {}
 
     /** @return array<int, Channel> */
     public function broadcastOn(): array

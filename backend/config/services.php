@@ -35,7 +35,6 @@ return [
         ],
     ],
 
-
     'sms' => [
         'endpoint' => env('SMS_ENDPOINT'),
         'key' => env('SMS_API_KEY'),
@@ -47,7 +46,6 @@ return [
         'api_key' => env('LIVEKIT_API_KEY'),
         'api_secret' => env('LIVEKIT_API_SECRET'),
     ],
-
 
     'push' => [
         'driver' => env('PUSH_DRIVER', 'log'), // log | http

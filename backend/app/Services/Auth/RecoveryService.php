@@ -22,8 +22,7 @@ class RecoveryService
     public function __construct(
         private readonly OtpService $otp,
         private readonly AuditLogger $audit,
-    ) {
-    }
+    ) {}
 
     private const PREFIX = 'recovery:';
 

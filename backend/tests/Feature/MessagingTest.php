@@ -5,6 +5,8 @@ namespace Tests\Feature;
 use App\Models\BlockedUser;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Storage;
 use Laravel\Sanctum\Sanctum;
 use Tests\TestCase;
 
@@ -146,16 +148,39 @@ class MessagingTest extends TestCase
             ->assertOk()->assertJsonPath('meta.total', 0);
     }
 
+    public function test_voice_message_persists_voice_note_metadata(): void
+    {
+        Storage::fake('private');
+        $a = User::factory()->create();
+        $b = User::factory()->create(['service_number' => '414141']);
+        Sanctum::actingAs($a);
+        $conversationId = $this->postJson('/api/v1/chats', ['service_number' => '414141'])->json('data.id');
+
+        $mediaId = $this->postJson('/api/v1/media', [
+            'kind' => 'voice',
+            'file' => UploadedFile::fake()->create('note.m4a', 20, 'audio/mp4'),
+        ])->json('id');
+
+        $this->postJson("/api/v1/chats/{$conversationId}/messages", [
+            'type' => 'voice',
+            'attachments' => [$mediaId],
+            'duration_ms' => 4200,
+            'waveform' => [0.1, 0.6, 0.9, 0.3],
+        ])->assertCreated();
+
+        $this->assertDatabaseHas('voice_notes', ['media_file_id' => $mediaId, 'duration_ms' => 4200]);
+    }
+
     public function test_media_upload_and_download_access_control(): void
     {
-        \Illuminate\Support\Facades\Storage::fake('private');
+        Storage::fake('private');
         $a = User::factory()->create();
         $stranger = User::factory()->create();
         Sanctum::actingAs($a);
 
         $upload = $this->postJson('/api/v1/media', [
             'kind' => 'image',
-            'file' => \Illuminate\Http\UploadedFile::fake()->image('photo.jpg', 100, 100),
+            'file' => UploadedFile::fake()->image('photo.jpg', 100, 100),
         ]);
         $upload->assertCreated()->assertJsonStructure(['id', 'download_url']);
         $mediaId = $upload->json('id');

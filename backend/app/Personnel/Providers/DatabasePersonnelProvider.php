@@ -20,8 +20,7 @@ class DatabasePersonnelProvider implements PersonnelProviderInterface
     public function __construct(
         private readonly DatabaseManager $db,
         private readonly array $config,
-    ) {
-    }
+    ) {}
 
     public function findByServiceNumber(string $serviceNumber): ?PersonnelRecordData
     {

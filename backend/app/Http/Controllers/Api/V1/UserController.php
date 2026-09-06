@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
 use App\Http\Resources\UserResource;
+use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -26,14 +27,14 @@ class UserController extends Controller
 
     public function updatePrivacy(Request $request): JsonResponse
     {
-        $allowed = array_keys(\App\Models\User::defaultPrivacy());
+        $allowed = array_keys(User::defaultPrivacy());
         $rules = [];
         foreach ($allowed as $key) {
             $rules[$key] = ['sometimes', 'in:everyone,contacts,nobody'];
         }
         $data = $request->validate($rules);
 
-        $privacy = array_merge($request->user()->privacy ?? \App\Models\User::defaultPrivacy(), $data);
+        $privacy = array_merge($request->user()->privacy ?? User::defaultPrivacy(), $data);
         $request->user()->update(['privacy' => $privacy]);
 
         return response()->json(['privacy' => $privacy]);

@@ -14,9 +14,7 @@ class LiveKitTokenService
     /**
      * @param  array{host: ?string, api_key: ?string, api_secret: ?string}  $config
      */
-    public function __construct(private readonly array $config)
-    {
-    }
+    public function __construct(private readonly array $config) {}
 
     public function isConfigured(): bool
     {

@@ -10,6 +10,5 @@ final class PushMessage
         public readonly string $title,
         public readonly string $body,
         public readonly array $data = [],
-    ) {
-    }
+    ) {}
 }

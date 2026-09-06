@@ -12,9 +12,7 @@ use Illuminate\Support\Carbon;
  */
 class AuditLogger
 {
-    public function __construct(private readonly Request $request)
-    {
-    }
+    public function __construct(private readonly Request $request) {}
 
     /**
      * @param  array<string, mixed>  $metadata

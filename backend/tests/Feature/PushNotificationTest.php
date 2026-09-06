@@ -2,6 +2,8 @@
 
 namespace Tests\Feature;
 
+use App\Models\Device;
+use App\Models\PushToken;
 use App\Models\User;
 use App\Services\Messaging\ConversationService;
 use App\Services\Push\PushMessage;
@@ -38,8 +40,10 @@ class PushNotificationTest extends TestCase
     {
         // Capture push deliveries.
         $sent = [];
-        $this->app->instance(PushSenderInterface::class, new class($sent) implements PushSenderInterface {
+        $this->app->instance(PushSenderInterface::class, new class($sent) implements PushSenderInterface
+        {
             public function __construct(public array &$sent) {}
+
             public function send(string $provider, string $token, PushMessage $message): void
             {
                 $this->sent[] = ['provider' => $provider, 'token' => $token, 'title' => $message->title];
@@ -48,9 +52,9 @@ class PushNotificationTest extends TestCase
 
         $a = User::factory()->create(['display_name' => 'ASI John Doe']);
         $b = User::factory()->create();
-        \App\Models\PushToken::create([
+        PushToken::create([
             'user_id' => $b->id,
-            'device_id' => \App\Models\Device::create([
+            'device_id' => Device::create([
                 'user_id' => $b->id, 'name' => 'B phone', 'platform' => 'ios',
                 'status' => 'active', 'last_active_at' => now(),
             ])->id,

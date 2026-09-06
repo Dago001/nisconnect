@@ -26,8 +26,7 @@ final class PersonnelRecordData
         public readonly ?string $officialEmail = null,
         public readonly string $status = 'active',
         public readonly ?string $photoUrl = null,
-    ) {
-    }
+    ) {}
 
     /**
      * Rebuild a DTO from an array (e.g. a cached verification session).

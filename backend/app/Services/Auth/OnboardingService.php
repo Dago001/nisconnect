@@ -25,8 +25,7 @@ class OnboardingService
         private readonly PersonnelVerificationService $personnel,
         private readonly OtpService $otp,
         private readonly AuditLogger $audit,
-    ) {
-    }
+    ) {}
 
     private const PREFIX = 'onboarding:';
 

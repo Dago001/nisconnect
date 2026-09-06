@@ -11,9 +11,7 @@ use Illuminate\Http\Request;
 
 class CallController extends Controller
 {
-    public function __construct(private readonly CallService $calls)
-    {
-    }
+    public function __construct(private readonly CallService $calls) {}
 
     public function store(Request $request): JsonResponse
     {

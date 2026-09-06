@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api\V1;
 
+use App\Events\UserTyping;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Messaging\StoreMessageRequest;
 use App\Http\Resources\MessageResource;
@@ -9,15 +10,12 @@ use App\Models\Conversation;
 use App\Models\Message;
 use App\Models\MessageReaction;
 use App\Services\Messaging\MessageService;
-use App\Events\UserTyping;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 class MessageController extends Controller
 {
-    public function __construct(private readonly MessageService $messages)
-    {
-    }
+    public function __construct(private readonly MessageService $messages) {}
 
     public function index(Request $request, Conversation $conversation): JsonResponse
     {
@@ -40,6 +38,10 @@ class MessageController extends Controller
             $request->validated('body'),
             $request->validated('reply_to_id'),
             $request->validated('attachments') ?? [],
+            [
+                'duration_ms' => $request->validated('duration_ms'),
+                'waveform' => $request->validated('waveform'),
+            ],
         );
 
         return (new MessageResource($message))->response()->setStatusCode(201);

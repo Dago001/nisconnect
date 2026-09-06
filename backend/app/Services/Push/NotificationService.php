@@ -12,9 +12,7 @@ use App\Models\User;
  */
 class NotificationService
 {
-    public function __construct(private readonly PushSenderInterface $push)
-    {
-    }
+    public function __construct(private readonly PushSenderInterface $push) {}
 
     /**
      * @param  array<string, string>  $data

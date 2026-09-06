@@ -6,6 +6,7 @@ use App\Models\Notification;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\RateLimiter;
+use Laravel\Sanctum\PersonalAccessToken;
 use Laravel\Sanctum\Sanctum;
 use Tests\TestCase;
 
@@ -76,7 +77,7 @@ class SecurityTest extends TestCase
 
     public function test_injection_style_service_number_is_rejected_by_validation(): void
     {
-        $this->postJson('/api/v1/auth/verify-service-number', ['service_number' => "1;DROP TABLE users;--"])
+        $this->postJson('/api/v1/auth/verify-service-number', ['service_number' => '1;DROP TABLE users;--'])
             ->assertStatus(422)
             ->assertJsonValidationErrorFor('service_number');
 
@@ -92,7 +93,7 @@ class SecurityTest extends TestCase
         $this->withToken($token)->postJson('/api/v1/auth/logout')->assertOk();
 
         // The token row is destroyed — the real revocation property.
-        $this->assertSame(0, \Laravel\Sanctum\PersonalAccessToken::count());
+        $this->assertSame(0, PersonalAccessToken::count());
 
         // Force the auth guard to re-resolve (a fresh HTTP process would);
         // the deleted token can no longer authenticate.

@@ -11,8 +11,11 @@ class MediaFile extends Model
     use HasUuidPrimaryKey;
 
     public const SCAN_PENDING = 'pending';
+
     public const SCAN_CLEAN = 'clean';
+
     public const SCAN_INFECTED = 'infected';
+
     public const SCAN_FAILED = 'failed';
 
     protected $fillable = [

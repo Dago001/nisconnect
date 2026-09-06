@@ -16,9 +16,7 @@ use RuntimeException;
  */
 class OtpService
 {
-    public function __construct(private readonly OtpSenderInterface $sender)
-    {
-    }
+    public function __construct(private readonly OtpSenderInterface $sender) {}
 
     /**
      * Issue (or re-issue) an OTP for a phone/purpose.

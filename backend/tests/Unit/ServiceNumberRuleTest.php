@@ -11,7 +11,7 @@ class ServiceNumberRuleTest extends TestCase
     private function fails(string $value): bool
     {
         $failed = false;
-        (new ServiceNumber())->validate('service_number', $value, function () use (&$failed) {
+        (new ServiceNumber)->validate('service_number', $value, function () use (&$failed) {
             $failed = true;
         });
 

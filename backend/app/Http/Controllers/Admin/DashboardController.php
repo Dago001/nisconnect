@@ -9,6 +9,7 @@ use App\Models\Channel;
 use App\Models\Device;
 use App\Models\Group;
 use App\Models\Message;
+use App\Models\PersonnelRecord;
 use App\Models\SecurityEvent;
 use App\Models\User;
 use Illuminate\View\View;
@@ -18,7 +19,7 @@ class DashboardController extends Controller
     public function index(): View
     {
         $stats = [
-            'personnel' => \App\Models\PersonnelRecord::count(),
+            'personnel' => PersonnelRecord::count(),
             'accounts' => User::count(),
             'active' => User::where('account_state', User::STATE_ACTIVE)->count(),
             'suspended' => User::where('account_state', User::STATE_SUSPENDED)->count(),

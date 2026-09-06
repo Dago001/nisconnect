@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use PHPUnit\Framework\Attributes\DataProvider;
 use Tests\TestCase;
 
 class OnboardingTest extends TestCase
@@ -98,9 +99,7 @@ class OnboardingTest extends TestCase
             ->assertJsonPath('verified', false);
     }
 
-    /**
-     * @dataProvider invalidServiceNumbers
-     */
+    #[DataProvider('invalidServiceNumbers')]
     public function test_non_numeric_service_numbers_are_rejected(string $value): void
     {
         $this->postJson('/api/v1/auth/verify-service-number', ['service_number' => $value])

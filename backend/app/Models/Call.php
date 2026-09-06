@@ -11,8 +11,11 @@ class Call extends Model
     use HasUuidPrimaryKey;
 
     public const TYPE_VOICE = 'voice';
+
     public const TYPE_VIDEO = 'video';
+
     public const MODE_DIRECT = 'direct';
+
     public const MODE_GROUP = 'group';
 
     protected $fillable = [

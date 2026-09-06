@@ -19,6 +19,10 @@ class StoreMessageRequest extends FormRequest
             'reply_to_id' => ['nullable', 'uuid'],
             'attachments' => ['nullable', 'array', 'max:10'],
             'attachments.*' => ['uuid'],
+            // Voice-note metadata (only meaningful when type=voice).
+            'duration_ms' => ['nullable', 'integer', 'min:1', 'max:600000'],
+            'waveform' => ['nullable', 'array', 'max:512'],
+            'waveform.*' => ['numeric'],
         ];
     }
 }

@@ -24,8 +24,7 @@ class CallSignal implements ShouldBroadcastNow
         public string $userId,
         public string $event,
         public array $payload,
-    ) {
-    }
+    ) {}
 
     /** @return array<int, Channel> */
     public function broadcastOn(): array

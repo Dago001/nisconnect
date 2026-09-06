@@ -16,8 +16,7 @@ class SmsOtpSender implements OtpSenderInterface
     public function __construct(
         private readonly HttpFactory $http,
         private readonly array $config,
-    ) {
-    }
+    ) {}
 
     public function send(string $phone, string $code): void
     {

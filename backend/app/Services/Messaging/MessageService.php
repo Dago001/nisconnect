@@ -9,21 +9,26 @@ use App\Models\Conversation;
 use App\Models\Message;
 use App\Models\MessageRead;
 use App\Models\User;
+use App\Models\VoiceNote;
 use App\Services\Push\NotificationService;
+use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 
 class MessageService
 {
-    public function __construct(private readonly NotificationService $notifications)
-    {
-    }
+    public function __construct(private readonly NotificationService $notifications) {}
 
     /**
      * Send a message into a conversation. Enforces membership and blocking.
      *
      * @param  array<int, string>  $attachmentMediaIds
+     */
+    /**
+     * @param  array<int, string>  $attachmentMediaIds
+     * @param  array{duration_ms?: int|null, waveform?: array<int, float>|null}  $voice
      */
     public function send(
         User $sender,
@@ -32,6 +37,7 @@ class MessageService
         ?string $body,
         ?string $replyToId = null,
         array $attachmentMediaIds = [],
+        array $voice = [],
     ): Message {
         if (! $conversation->hasMember($sender->id)) {
             throw ValidationException::withMessages(['conversation' => 'You are not a member of this conversation.']);
@@ -45,7 +51,7 @@ class MessageService
             }
         }
 
-        $message = DB::transaction(function () use ($sender, $conversation, $type, $body, $replyToId, $attachmentMediaIds) {
+        $message = DB::transaction(function () use ($sender, $conversation, $type, $body, $replyToId, $attachmentMediaIds, $voice) {
             $message = Message::create([
                 'conversation_id' => $conversation->id,
                 'sender_id' => $sender->id,
@@ -62,6 +68,16 @@ class MessageService
                 ]);
             }
 
+            // Persist voice-note metadata (duration + waveform) for playback UI.
+            if ($type === 'voice' && ! empty($attachmentMediaIds)) {
+                VoiceNote::create([
+                    'message_id' => $message->id,
+                    'media_file_id' => $attachmentMediaIds[0],
+                    'duration_ms' => $voice['duration_ms'] ?? 0,
+                    'waveform' => $voice['waveform'] ?? null,
+                ]);
+            }
+
             $conversation->forceFill([
                 'last_message_id' => $message->id,
                 'updated_at' => Carbon::now(),
@@ -75,7 +91,7 @@ class MessageService
         // Notify other members (in-app + push). Recipients who have muted the
         // conversation are skipped.
         $preview = $type === 'text'
-            ? \Illuminate\Support\Str::limit((string) $body, 120)
+            ? Str::limit((string) $body, 120)
             : ucfirst($type).' message';
         $recipients = $conversation->members()
             ->where('user_id', '!=', $sender->id)
@@ -113,7 +129,7 @@ class MessageService
      * Full-text search across the user's own conversations using the GIN index.
      * Never loads a whole conversation onto the device — the DB does the work.
      *
-     * @return \Illuminate\Contracts\Pagination\LengthAwarePaginator
+     * @return LengthAwarePaginator
      */
     public function search(User $user, string $term, ?string $conversationId = null, ?string $type = null, int $perPage = 20)
     {

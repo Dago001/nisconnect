@@ -24,8 +24,7 @@ class CallService
     public function __construct(
         private readonly LiveKitTokenService $tokens,
         private readonly AuditLogger $audit,
-    ) {
-    }
+    ) {}
 
     /**
      * Start a call in a conversation (direct or group).

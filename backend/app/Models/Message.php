@@ -14,9 +14,13 @@ class Message extends Model
     use SoftDeletes;
 
     public const STATUS_SENDING = 'sending';
+
     public const STATUS_SENT = 'sent';
+
     public const STATUS_DELIVERED = 'delivered';
+
     public const STATUS_READ = 'read';
+
     public const STATUS_FAILED = 'failed';
 
     protected $fillable = [

@@ -11,8 +11,11 @@ class GroupMember extends Model
     use HasUuidPrimaryKey;
 
     public const ROLE_OWNER = 'owner';
+
     public const ROLE_ADMIN = 'admin';
+
     public const ROLE_MODERATOR = 'moderator';
+
     public const ROLE_MEMBER = 'member';
 
     protected $fillable = ['group_id', 'user_id', 'role', 'permissions', 'added_by'];

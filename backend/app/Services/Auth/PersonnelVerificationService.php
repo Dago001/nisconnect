@@ -13,9 +13,7 @@ use Illuminate\Support\Carbon;
  */
 class PersonnelVerificationService
 {
-    public function __construct(private readonly PersonnelProviderInterface $provider)
-    {
-    }
+    public function __construct(private readonly PersonnelProviderInterface $provider) {}
 
     /**
      * Look up a record. May throw PersonnelSourceUnavailableException upstream.

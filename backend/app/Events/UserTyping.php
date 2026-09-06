@@ -13,9 +13,7 @@ class UserTyping implements ShouldBroadcastNow
     use Dispatchable;
     use InteractsWithSockets;
 
-    public function __construct(public string $conversationId, public string $userId)
-    {
-    }
+    public function __construct(public string $conversationId, public string $userId) {}
 
     /** @return array<int, Channel> */
     public function broadcastOn(): array

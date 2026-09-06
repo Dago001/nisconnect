@@ -14,6 +14,7 @@ class Group extends Model
     use SoftDeletes;
 
     public const TYPE_STANDARD = 'standard';
+
     public const TYPE_ORGANISATIONAL = 'organisational';
 
     protected $fillable = [

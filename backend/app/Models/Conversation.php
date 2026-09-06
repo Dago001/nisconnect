@@ -11,7 +11,9 @@ class Conversation extends Model
     use HasUuidPrimaryKey;
 
     public const TYPE_DIRECT = 'direct';
+
     public const TYPE_GROUP = 'group';
+
     public const TYPE_CHANNEL = 'channel';
 
     protected $fillable = [

@@ -16,9 +16,7 @@ class MessageRead implements ShouldBroadcast
     use InteractsWithSockets;
     use SerializesModels;
 
-    public function __construct(public Message $message, public string $readerId)
-    {
-    }
+    public function __construct(public Message $message, public string $readerId) {}
 
     /** @return array<int, Channel> */
     public function broadcastOn(): array

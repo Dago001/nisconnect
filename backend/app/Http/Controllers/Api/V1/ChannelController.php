@@ -19,9 +19,7 @@ use Illuminate\Support\Facades\DB;
  */
 class ChannelController extends Controller
 {
-    public function __construct(private readonly AuditLogger $audit)
-    {
-    }
+    public function __construct(private readonly AuditLogger $audit) {}
 
     public function index(Request $request): JsonResponse
     {

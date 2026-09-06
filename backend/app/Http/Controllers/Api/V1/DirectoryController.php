@@ -3,7 +3,6 @@
 namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
-use App\Models\PersonnelRecord;
 use App\Models\User;
 use App\Services\Support\AuditLogger;
 use Illuminate\Http\JsonResponse;
@@ -16,9 +15,7 @@ use Illuminate\Http\Request;
  */
 class DirectoryController extends Controller
 {
-    public function __construct(private readonly AuditLogger $audit)
-    {
-    }
+    public function __construct(private readonly AuditLogger $audit) {}
 
     public function search(Request $request): JsonResponse
     {

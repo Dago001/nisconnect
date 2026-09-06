@@ -11,6 +11,7 @@ class Device extends Model
     use HasUuidPrimaryKey;
 
     public const STATUS_ACTIVE = 'active';
+
     public const STATUS_REVOKED = 'revoked';
 
     protected $fillable = [

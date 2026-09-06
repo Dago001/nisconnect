@@ -48,10 +48,15 @@ class User extends Authenticatable implements AuthenticatableContract
 
     // Account states
     public const STATE_PENDING = 'pending';
+
     public const STATE_ACTIVE = 'active';
+
     public const STATE_SUSPENDED = 'suspended';
+
     public const STATE_LOCKED = 'locked';
+
     public const STATE_DISABLED = 'disabled';
+
     public const STATE_INACTIVE = 'inactive';
 
     public function isActive(): bool

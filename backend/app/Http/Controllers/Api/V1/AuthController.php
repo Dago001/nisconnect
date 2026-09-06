@@ -31,8 +31,7 @@ class AuthController extends Controller
         private readonly OnboardingService $onboarding,
         private readonly RecoveryService $recovery,
         private readonly AuditLogger $audit,
-    ) {
-    }
+    ) {}
 
     /**
      * Step 1 — verify a numeric Service Number against the personnel source.
