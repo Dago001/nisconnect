@@ -58,11 +58,20 @@ nisconnect/
   user search, suspend/reactivate, revoke devices — all audited. At `/admin/login`.
 - **Docker stack** (`infrastructure/`): Nginx, PHP-FPM, PostgreSQL, Redis, Reverb
   (WebSockets), queue worker, MinIO, LiveKit; plus GitHub Actions CI.
-- **39 passing tests** (feature + unit) against PostgreSQL.
+- **58 passing tests** (feature + unit) against PostgreSQL.
+
+Also implemented and tested: **private & group messaging** (realtime events, read
+receipts, reactions, blocking), **media sharing** (private disk, signed download,
+validation), **indexed message search**, **voice/video call signalling** (LiveKit
+server-minted JWTs), **official channels**, **blocking/reporting**, **push
+notifications** (FCM/APNs adapters + dispatch), and a **security test suite**
+(enumeration rate limiting, IDOR, auth bypass, injection).
 
 See the roadmap in [docs/ARCHITECTURE.md §12](docs/ARCHITECTURE.md#12-development-roadmap)
-for phase status. Messaging/calls/push and the Flutter client are scaffolded per the
-architecture and continue in subsequent phases.
+for full phase status. The **Flutter client** is written per the architecture (onboarding,
+chat, directory, calls scaffold) but builds on a machine with the Flutter SDK — it was not
+compiled in this environment. Remaining media-plane work (WebRTC device media, real
+FCM/APNs credentials) connects via the documented adapters without code changes.
 
 ## Run the backend locally
 
