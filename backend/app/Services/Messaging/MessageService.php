@@ -110,6 +110,28 @@ class MessageService
     }
 
     /**
+     * Full-text search across the user's own conversations using the GIN index.
+     * Never loads a whole conversation onto the device — the DB does the work.
+     *
+     * @return \Illuminate\Contracts\Pagination\LengthAwarePaginator
+     */
+    public function search(User $user, string $term, ?string $conversationId = null, ?string $type = null, int $perPage = 20)
+    {
+        $memberConversationIds = $user->conversationMemberships()
+            ->whereNull('left_at')
+            ->pluck('conversation_id');
+
+        return Message::query()
+            ->whereIn('conversation_id', $memberConversationIds)
+            ->when($conversationId, fn ($q) => $q->where('conversation_id', $conversationId))
+            ->when($type, fn ($q) => $q->where('type', $type))
+            ->whereRaw("to_tsvector('simple', coalesce(body, '')) @@ plainto_tsquery('simple', ?)", [$term])
+            ->with(['sender', 'attachments'])
+            ->orderByDesc('created_at')
+            ->paginate($perPage);
+    }
+
+    /**
      * Mark a message (and everything before it) read by a user.
      */
     public function markRead(User $user, Message $message): void

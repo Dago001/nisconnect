@@ -125,6 +125,27 @@ class MessagingTest extends TestCase
             ->assertOk()->assertJsonPath('added', 1);
     }
 
+    public function test_message_search_is_scoped_to_the_users_conversations(): void
+    {
+        $a = User::factory()->create();
+        $b = User::factory()->create(['service_number' => '303030']);
+        Sanctum::actingAs($a);
+        $conversationId = $this->postJson('/api/v1/chats', ['service_number' => '303030'])->json('data.id');
+
+        $this->postJson("/api/v1/chats/{$conversationId}/messages", ['type' => 'text', 'body' => 'Border patrol briefing at dawn']);
+        $this->postJson("/api/v1/chats/{$conversationId}/messages", ['type' => 'text', 'body' => 'Lunch plans']);
+
+        $this->getJson('/api/v1/messages/search?q=briefing')
+            ->assertOk()
+            ->assertJsonPath('meta.total', 1)
+            ->assertJsonPath('data.0.body', 'Border patrol briefing at dawn');
+
+        // A stranger with no shared conversation finds nothing.
+        Sanctum::actingAs(User::factory()->create());
+        $this->getJson('/api/v1/messages/search?q=briefing')
+            ->assertOk()->assertJsonPath('meta.total', 0);
+    }
+
     public function test_media_upload_and_download_access_control(): void
     {
         \Illuminate\Support\Facades\Storage::fake('private');

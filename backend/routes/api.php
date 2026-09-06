@@ -57,6 +57,7 @@ Route::prefix('v1')->group(function () {
         Route::get('chats/{conversation}/messages', [MessageController::class, 'index']);
         Route::post('chats/{conversation}/messages', [MessageController::class, 'store']);
         Route::post('chats/{conversation}/typing', [MessageController::class, 'typing']);
+        Route::get('messages/search', [MessageController::class, 'search']);
         Route::post('messages/{message}/read', [MessageController::class, 'markRead']);
         Route::post('messages/{message}/react', [MessageController::class, 'react']);
         Route::delete('messages/{message}', [MessageController::class, 'destroy']);

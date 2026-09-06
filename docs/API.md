@@ -33,6 +33,7 @@ with no internal detail. Onboarding, OTP, login and directory routes are rate li
 | GET | `/chats/{conversation}/messages?cursor=` | Cursor-paginated (newest first) + `next_cursor`. |
 | POST | `/chats/{conversation}/messages` `{type,body,reply_to_id?,attachments[]}` | Send. |
 | POST | `/chats/{conversation}/typing` | Broadcast typing. |
+| GET | `/messages/search?q=&conversation_id?&type?` | Full-text search (GIN index) scoped to the user's conversations. |
 | POST | `/messages/{message}/read` | Read receipt. |
 | POST | `/messages/{message}/react` `{emoji}` | React. |
 | DELETE | `/messages/{message}` | Delete own message. |

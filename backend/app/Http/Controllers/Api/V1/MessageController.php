@@ -45,6 +45,29 @@ class MessageController extends Controller
         return (new MessageResource($message))->response()->setStatusCode(201);
     }
 
+    public function search(Request $request): JsonResponse
+    {
+        $data = $request->validate([
+            'q' => ['required', 'string', 'min:2', 'max:120'],
+            'conversation_id' => ['nullable', 'uuid'],
+            'type' => ['nullable', 'in:text,image,video,document,audio,voice'],
+            'per_page' => ['nullable', 'integer', 'min:1', 'max:50'],
+        ]);
+
+        $page = $this->messages->search(
+            $request->user(),
+            $data['q'],
+            $data['conversation_id'] ?? null,
+            $data['type'] ?? null,
+            $data['per_page'] ?? 20,
+        );
+
+        return response()->json([
+            'data' => MessageResource::collection($page->items()),
+            'meta' => ['current_page' => $page->currentPage(), 'last_page' => $page->lastPage(), 'total' => $page->total()],
+        ]);
+    }
+
     public function markRead(Request $request, Message $message): JsonResponse
     {
         abort_unless($message->conversation->hasMember($request->user()->id), 403);
