@@ -1,8 +1,7 @@
 import 'dart:async';
-import 'dart:convert';
 
+import 'package:dart_pusher_channels/dart_pusher_channels.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:pusher_channels_flutter/pusher_channels_flutter.dart';
 
 import '../../core/config/app_config.dart';
 import '../../core/network/api_client.dart';
@@ -14,6 +13,41 @@ class RealtimeEvent {
   final Map<String, dynamic> data;
 }
 
+/// Authorises private channels through Laravel's `/broadcasting/auth`.
+///
+/// Reuses [ApiClient]'s Dio instance so the bearer token interceptor applies —
+/// the endpoint rejects unauthenticated callers.
+class _BroadcastingAuthDelegate
+    implements
+        EndpointAuthorizableChannelAuthorizationDelegate<
+            PrivateChannelAuthorizationData> {
+  _BroadcastingAuthDelegate(this._api);
+
+  final ApiClient _api;
+
+  @override
+  EndpointAuthFailedCallback? get onAuthFailed => null;
+
+  @override
+  Future<PrivateChannelAuthorizationData> authorizationData(
+    String socketId,
+    String channelName,
+  ) async {
+    final res = await _api.dio.post<dynamic>(
+      '${AppConfig.apiBaseUrl.replaceFirst('/api/v1', '')}/broadcasting/auth',
+      data: {'socket_id': socketId, 'channel_name': channelName},
+    );
+    final body = res.data;
+    final authKey = body is Map ? body['auth']?.toString() : null;
+    if (authKey == null) {
+      throw StateError(
+        'broadcasting/auth returned no "auth" key for $channelName',
+      );
+    }
+    return PrivateChannelAuthorizationData(authKey: authKey);
+  }
+}
+
 /// Connects to the Laravel Reverb WebSocket server (Pusher protocol) and
 /// exposes a single event stream. Handles authenticated private channels and
 /// reconnection with backoff. One instance per authenticated session.
@@ -22,39 +56,47 @@ class RealtimeService {
 
   final ApiClient _api;
 
-  final _pusher = PusherChannelsFlutter.getInstance();
   final _controller = StreamController<RealtimeEvent>.broadcast();
-  final _subscribed = <String>{};
+  final _channels = <String, PrivateChannel>{};
+  final _channelSubs = <String, StreamSubscription<ChannelReadEvent>>{};
+
+  PusherChannelsClient? _client;
+  StreamSubscription<void>? _connectionSub;
   bool _connected = false;
 
   Stream<RealtimeEvent> get events => _controller.stream;
   bool get isConnected => _connected;
 
   Future<void> connect() async {
-    if (_connected) return;
+    if (_client != null) return;
 
-    await _pusher.init(
-      apiKey: AppConfig.wsKey,
-      cluster: 'mt1',
-      host: AppConfig.wsHost,
-      wsPort: AppConfig.wsPort,
-      useTLS: false,
-      // Authorise private channels via the backend broadcasting/auth endpoint.
-      onAuthorizer: (String channelName, String socketId, dynamic options) async {
-        final res = await _api.dio.post(
-          '${AppConfig.apiBaseUrl.replaceFirst('/api/v1', '')}/broadcasting/auth',
-          data: {'socket_id': socketId, 'channel_name': channelName},
-          options: null,
-        );
-        return res.data as Map<String, dynamic>;
+    // Reverb is self-hosted, so the endpoint is built from an explicit
+    // host/port rather than a Pusher cluster: {scheme}://{host}:{port}/app/{key}
+    final client = PusherChannelsClient.websocket(
+      options: const PusherChannelsOptions.fromHost(
+        scheme: AppConfig.wsScheme,
+        host: AppConfig.wsHost,
+        port: AppConfig.wsPort,
+        key: AppConfig.wsKey,
+      ),
+      connectionErrorHandler: (exception, trace, refresh) {
+        _connected = false;
+        // Retry with the client's built-in backoff.
+        refresh();
       },
-      onConnectionStateChange: (current, previous) {
-        _connected = current == 'CONNECTED';
-      },
-      onEvent: _onEvent,
     );
+    _client = client;
 
-    await _pusher.connect();
+    // Subscriptions do not survive a dropped socket, so re-subscribe every time
+    // the connection is (re-)established rather than only on first connect.
+    _connectionSub = client.onConnectionEstablished.listen((_) {
+      _connected = true;
+      for (final channel in _channels.values) {
+        channel.subscribe();
+      }
+    });
+
+    await client.connect();
     _connected = true;
   }
 
@@ -63,37 +105,63 @@ class RealtimeService {
 
   Future<void> subscribeUser(String userId) => _subscribe('private-user.$userId');
 
-  Future<void> _subscribe(String channel) async {
-    if (_subscribed.contains(channel)) return;
-    _subscribed.add(channel);
-    await _pusher.subscribe(channelName: channel);
+  Future<void> _subscribe(String channelName) async {
+    final client = _client;
+    if (client == null) {
+      throw StateError('connect() must be called before subscribing');
+    }
+    if (_channels.containsKey(channelName)) return;
+
+    final channel = client.privateChannel(
+      channelName,
+      authorizationDelegate: _BroadcastingAuthDelegate(_api),
+    );
+    _channels[channelName] = channel;
+    _channelSubs[channelName] = channel.bindToAll().listen(_onEvent);
+    channel.subscribe();
   }
 
-  void _onEvent(PusherEvent event) {
-    if (event.eventName.startsWith('pusher:') || event.eventName.startsWith('pusher_internal:')) {
+  void _onEvent(ChannelReadEvent event) {
+    final name = event.name;
+    if (name.startsWith('pusher:') || name.startsWith('pusher_internal:')) {
       return;
     }
-    Map<String, dynamic> data = {};
-    if (event.data is String && (event.data as String).isNotEmpty) {
-      try {
-        data = jsonDecode(event.data as String) as Map<String, dynamic>;
-      } catch (_) {
-        data = {'raw': event.data};
-      }
-    }
-    _controller.add(RealtimeEvent(event.eventName, data));
+    // Payloads arrive double-encoded; tryGetDataAsMap unwraps that and returns
+    // null when the body is not a JSON object.
+    final raw = event.data;
+    final data = event.tryGetDataAsMap() ??
+        (raw == null ? <String, dynamic>{} : <String, dynamic>{'raw': raw});
+    _controller.add(RealtimeEvent(name, data));
   }
 
   Future<void> disconnect() async {
-    for (final c in _subscribed) {
-      await _pusher.unsubscribe(channelName: c);
+    for (final sub in _channelSubs.values) {
+      await sub.cancel();
     }
-    _subscribed.clear();
-    await _pusher.disconnect();
+    _channelSubs.clear();
+    for (final channel in _channels.values) {
+      channel.unsubscribe();
+    }
+    _channels.clear();
+    await _connectionSub?.cancel();
+    _connectionSub = null;
+    await _client?.disconnect();
     _connected = false;
   }
 
   void dispose() {
+    for (final sub in _channelSubs.values) {
+      unawaited(sub.cancel());
+    }
+    _channelSubs.clear();
+    _channels.clear();
+    unawaited(_connectionSub?.cancel());
+    _connectionSub = null;
+    // dispose() also tears down the underlying connection; null the field so a
+    // second dispose cannot throw PusherChannelsClientDisposedException.
+    _client?.dispose();
+    _client = null;
+    _connected = false;
     _controller.close();
   }
 }

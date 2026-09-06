@@ -8,7 +8,7 @@ class AppTheme {
   AppTheme._();
 
   static ThemeData get light {
-    final scheme = const ColorScheme.light(
+    const scheme = ColorScheme.light(
       primary: AppColors.primaryGreen,
       secondary: AppColors.secondaryGreen,
       surface: AppColors.white,
@@ -20,7 +20,7 @@ class AppTheme {
   }
 
   static ThemeData get dark {
-    final scheme = const ColorScheme.dark(
+    const scheme = ColorScheme.dark(
       primary: AppColors.dPrimaryGreen,
       secondary: AppColors.dSecondaryGreen,
       surface: AppColors.dSurface,

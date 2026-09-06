@@ -18,7 +18,7 @@ class CallsScreen extends StatelessWidget {
           children: [
             const Icon(Icons.call_outlined, size: 56, color: AppColors.neutralGrey),
             const SizedBox(height: 12),
-            Text('No recent calls', style: AppTypography.title),
+            const Text('No recent calls', style: AppTypography.title),
             const SizedBox(height: 4),
             Text('Start a voice or video call from a chat or the directory.',
                 textAlign: TextAlign.center,

@@ -20,7 +20,7 @@ class WelcomeScreen extends StatelessWidget {
                 fit: StackFit.expand,
                 children: [
                   Image.asset('assets/images/hq-exterior-night.jpg', fit: BoxFit.cover),
-                  Container(color: AppColors.darkGreen.withOpacity(0.55)),
+                  Container(color: AppColors.darkGreen.withValues(alpha: 0.55)),
                   Center(
                     child: Column(
                       mainAxisSize: MainAxisSize.min,

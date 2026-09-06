@@ -26,11 +26,11 @@ class ProfileScreen extends ConsumerWidget {
         data: (u) => ListView(
           children: [
             const SizedBox(height: 16),
-            Center(
+            const Center(
               child: CircleAvatar(
                 radius: 40,
                 backgroundColor: AppColors.lightGreen,
-                child: const Icon(Icons.person, size: 40, color: AppColors.primaryGreen),
+                child: Icon(Icons.person, size: 40, color: AppColors.primaryGreen),
               ),
             ),
             const SizedBox(height: 12),

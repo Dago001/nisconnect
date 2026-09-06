@@ -36,7 +36,7 @@ class PersonnelRecord {
   final String? photoUrl;
 
   String get fullName =>
-      [firstName, otherName, surname].where((p) => p != null && p!.isNotEmpty).join(' ');
+      [firstName, otherName, surname].where((p) => p != null && p.isNotEmpty).join(' ');
 
   factory PersonnelRecord.fromJson(Map<String, dynamic> json) => PersonnelRecord(
         serviceNumber: json['service_number'] as String,

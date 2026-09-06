@@ -40,7 +40,7 @@ class ChatsScreen extends ConsumerWidget {
                     ),
                   ),
                   title: Text(c.title ?? 'Direct chat', style: AppTypography.title),
-                  subtitle: Text('Tap to open', style: AppTypography.caption),
+                  subtitle: const Text('Tap to open', style: AppTypography.caption),
                   onTap: () => context.go('/home/chat/${c.id}'),
                 );
               },
@@ -62,7 +62,7 @@ class _EmptyState extends StatelessWidget {
         children: [
           const Icon(Icons.forum_outlined, size: 56, color: AppColors.neutralGrey),
           const SizedBox(height: 12),
-          Text('No conversations yet', style: AppTypography.title),
+          const Text('No conversations yet', style: AppTypography.title),
           const SizedBox(height: 4),
           Text('Find an officer in the Directory to start chatting.',
               style: AppTypography.caption.copyWith(color: AppColors.neutralGrey)),

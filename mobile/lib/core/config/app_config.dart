@@ -8,6 +8,8 @@ class AppConfig {
     defaultValue: 'http://10.0.2.2:8000/api/v1', // Android emulator -> host
   );
 
+  /// `ws` for local/emulator Reverb; override to `wss` for TLS deployments.
+  static const String wsScheme = String.fromEnvironment('WS_SCHEME', defaultValue: 'ws');
   static const String wsHost = String.fromEnvironment('WS_HOST', defaultValue: '10.0.2.2');
   static const int wsPort = int.fromEnvironment('WS_PORT', defaultValue: 8080);
   static const String wsKey = String.fromEnvironment('WS_KEY', defaultValue: 'nisconnect');

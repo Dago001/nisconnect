@@ -55,7 +55,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Text('Welcome back', style: AppTypography.h1),
+              const Text('Welcome back', style: AppTypography.h1),
               const SizedBox(height: 24),
               ServiceNumberField(controller: _serviceNumber),
               const SizedBox(height: 16),

@@ -68,7 +68,7 @@ class _ServiceNumberStepState extends ConsumerState<_ServiceNumberStep> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Text('Enter your Service Number', style: AppTypography.h1),
+        const Text('Enter your Service Number', style: AppTypography.h1),
         const SizedBox(height: 8),
         Text(
           'We will verify it against the NIS personnel records before creating your account.',
@@ -153,7 +153,7 @@ class _PhoneStepState extends ConsumerState<_PhoneStep> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Text('Verify your phone', style: AppTypography.h1),
+        const Text('Verify your phone', style: AppTypography.h1),
         const SizedBox(height: 8),
         Text('We will send a one-time code to confirm this number.',
             style: AppTypography.body.copyWith(color: AppColors.neutralGrey)),
@@ -197,7 +197,7 @@ class _OtpStepState extends ConsumerState<_OtpStep> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Text('Enter the code', style: AppTypography.h1),
+        const Text('Enter the code', style: AppTypography.h1),
         const SizedBox(height: 8),
         Text('Sent to ${widget.phone}',
             style: AppTypography.body.copyWith(color: AppColors.neutralGrey)),
@@ -242,7 +242,7 @@ class _PinStepState extends ConsumerState<_PinStep> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Text('Create a PIN', style: AppTypography.h1),
+        const Text('Create a PIN', style: AppTypography.h1),
         const SizedBox(height: 8),
         Text('Used to secure your NISconnect account on this device.',
             style: AppTypography.body.copyWith(color: AppColors.neutralGrey)),
