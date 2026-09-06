@@ -1,0 +1,73 @@
+name: nisconnect
+description: NISconnect — secure internal communication platform for the Nigeria Immigration Service.
+publish_to: "none"
+version: 1.0.0+1
+
+environment:
+  sdk: ">=3.4.0 <4.0.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  # State management (chosen: Riverpod, used consistently)
+  flutter_riverpod: ^2.5.1
+
+  # Routing
+  go_router: ^14.2.0
+
+  # Networking
+  dio: ^5.4.0
+
+  # Secure local storage (Android Keystore / iOS Keychain)
+  flutter_secure_storage: ^9.2.2
+
+  # Local cache / offline outbox
+  drift: ^2.18.0
+  sqlite3_flutter_libs: ^0.5.0
+  path_provider: ^2.1.0
+  path: ^1.9.0
+
+  # Realtime + calling
+  pusher_channels_flutter: ^2.2.1
+  livekit_client: ^2.2.0
+
+  # Media & device
+  image_picker: ^1.1.0
+  file_picker: ^8.0.0
+  record: ^5.1.0
+  just_audio: ^0.9.36
+  permission_handler: ^11.3.0
+  local_auth: ^2.2.0
+
+  # Push
+  firebase_core: ^3.1.0
+  firebase_messaging: ^15.0.0
+  flutter_callkit_incoming: ^2.0.4
+
+  intl: ^0.19.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^4.0.0
+  drift_dev: ^2.18.0
+  build_runner: ^2.4.0
+
+flutter:
+  uses-material-design: true
+
+  assets:
+    - assets/logos/
+    - assets/images/
+
+  # Arial is proprietary. Drop a licensed Arial (or the metric-compatible
+  # Liberation Sans / Arimo, Apache-2.0) into assets/fonts/ and this single
+  # registration makes the whole app use it — no component changes.
+  # See docs/DESIGN_SYSTEM.md §3.
+  fonts:
+    - family: Arial
+      fonts:
+        - asset: assets/fonts/Arial.ttf
+        - asset: assets/fonts/Arial-Bold.ttf
+          weight: 700
