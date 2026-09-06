@@ -9,12 +9,17 @@ use App\Models\Conversation;
 use App\Models\Message;
 use App\Models\MessageRead;
 use App\Models\User;
+use App\Services\Push\NotificationService;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
 class MessageService
 {
+    public function __construct(private readonly NotificationService $notifications)
+    {
+    }
+
     /**
      * Send a message into a conversation. Enforces membership and blocking.
      *
@@ -66,6 +71,29 @@ class MessageService
         });
 
         broadcast(new MessageCreated($message))->toOthers();
+
+        // Notify other members (in-app + push). Recipients who have muted the
+        // conversation are skipped.
+        $preview = $type === 'text'
+            ? \Illuminate\Support\Str::limit((string) $body, 120)
+            : ucfirst($type).' message';
+        $recipients = $conversation->members()
+            ->where('user_id', '!=', $sender->id)
+            ->whereNull('left_at')
+            ->where(fn ($q) => $q->whereNull('muted_until')->orWhere('muted_until', '<', Carbon::now()))
+            ->with('user')
+            ->get();
+        foreach ($recipients as $member) {
+            if ($member->user) {
+                $this->notifications->notify(
+                    $member->user,
+                    'message',
+                    $sender->display_name,
+                    $preview,
+                    ['conversation_id' => $conversation->id, 'message_id' => $message->id],
+                );
+            }
+        }
 
         return $message->load('attachments', 'sender');
     }

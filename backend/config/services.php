@@ -48,4 +48,17 @@ return [
         'api_secret' => env('LIVEKIT_API_SECRET'),
     ],
 
+
+    'push' => [
+        'driver' => env('PUSH_DRIVER', 'log'), // log | http
+        'fcm' => [
+            'endpoint' => env('FCM_ENDPOINT'),
+            'key' => env('FCM_SERVER_KEY'),
+        ],
+        'apns' => [
+            'endpoint' => env('APNS_ENDPOINT'),
+            'key' => env('APNS_KEY'),
+        ],
+    ],
+
 ];

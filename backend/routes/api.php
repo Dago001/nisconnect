@@ -46,6 +46,7 @@ Route::prefix('v1')->group(function () {
             ->middleware('throttle:directory');
 
         Route::get('devices', [DeviceController::class, 'index']);
+        Route::post('devices/push-token', [DeviceController::class, 'registerPushToken']);
         Route::delete('devices/all', [DeviceController::class, 'destroyAll']);
         Route::delete('devices/{device}', [DeviceController::class, 'destroy']);
 

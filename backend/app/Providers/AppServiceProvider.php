@@ -16,6 +16,17 @@ class AppServiceProvider extends ServiceProvider
 {
     public function register(): void
     {
+        $this->app->singleton(\App\Services\Push\PushSenderInterface::class, function (Application $app) {
+            $driver = (string) config('services.push.driver', 'log');
+
+            return match ($driver) {
+                'http' => new \App\Services\Push\HttpPushSender(
+                    $app->make(HttpFactory::class), (array) config('services.push')
+                ),
+                default => new \App\Services\Push\LogPushSender(),
+            };
+        });
+
         $this->app->singleton(\App\Services\Calls\LiveKitTokenService::class, function () {
             return new \App\Services\Calls\LiveKitTokenService((array) config('services.livekit', []));
         });

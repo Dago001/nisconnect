@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api\V1;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\DeviceResource;
 use App\Models\Device;
+use App\Models\PushToken;
 use App\Services\Support\AuditLogger;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -26,6 +27,28 @@ class DeviceController extends Controller
             ->each(fn (Device $d) => $d->current = ($d->id === $currentDeviceId));
 
         return DeviceResource::collection($devices);
+    }
+
+    /**
+     * Register (or refresh) the FCM/APNs push token for the current device.
+     */
+    public function registerPushToken(Request $request): JsonResponse
+    {
+        $data = $request->validate([
+            'provider' => ['required', 'in:fcm,apns'],
+            'token' => ['required', 'string', 'max:512'],
+        ]);
+
+        $deviceId = $request->user()->currentAccessToken()->device_id ?? null;
+        abort_if($deviceId === null, 422, 'No device is bound to this session.');
+
+        PushToken::updateOrCreate(
+            ['provider' => $data['provider'], 'token' => $data['token']],
+            ['user_id' => $request->user()->id, 'device_id' => $deviceId],
+        );
+        Device::where('id', $deviceId)->update(['push_token' => $data['token']]);
+
+        return response()->json(['message' => 'Push token registered.']);
     }
 
     public function destroy(Request $request, Device $device): JsonResponse
