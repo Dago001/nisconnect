@@ -21,7 +21,14 @@ lib/
   backend. Never contacts the NIS personnel source directly.
 - Login by Service Number + PIN; token stored in Keystore/Keychain via `flutter_secure_storage`.
 - Chats list, conversation view (history + send), directory search + start chat, groups list,
-  profile with sign-out. Calls screen scaffolds the LiveKit flow.
+  profile with sign-out.
+- **Realtime** (`services/websocket/realtime_service.dart`): connects to Reverb (Pusher
+  protocol), authorises private channels via the backend, streams `message.new` into the open
+  conversation live.
+- **Calling** (`features/calls/`): `CallController` signals the backend and connects to the
+  LiveKit room; incoming-call and in-call screens with mute/camera/hang-up.
+- **Voice notes** (`features/chat/.../voice_note_recorder.dart`): record/cancel/send with a
+  live timer via the `record` package (microphone permission handled).
 
 ## Build
 

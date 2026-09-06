@@ -79,6 +79,6 @@ Private channel `conversation.{id}` (members only) emits `message.new`, `message
 `routes/channels.php`.
 
 ## OpenAPI
-An OpenAPI 3 description can be generated from the Form Requests + Resources; wire
-`php artisan l5-swagger:generate` (or scramble) in the release step to publish
-`/docs`. The table above is the authoritative contract until then.
+A hand-authored OpenAPI 3.0 description of the full v1 surface lives at
+[`docs/openapi.yaml`](openapi.yaml) (45 paths). Import it into Swagger UI / Postman, or
+serve it via `l5-swagger`/`scramble` in the release step to publish `/docs`.

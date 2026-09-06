@@ -1,9 +1,14 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/network/api_client.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_typography.dart';
+import '../../../services/websocket/realtime_service.dart';
+import '../../calls/presentation/call_controller.dart';
+import '../../calls/presentation/in_call_screen.dart';
 import '../data/chat_repository.dart';
 
 /// One-to-one / group conversation view. Loads history and sends messages via
@@ -23,11 +28,40 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
   bool _loading = true;
   bool _sending = false;
   String? _meId;
+  StreamSubscription<RealtimeEvent>? _rtSub;
 
   @override
   void initState() {
     super.initState();
     _load();
+    _connectRealtime();
+  }
+
+  Future<void> _connectRealtime() async {
+    final rt = ref.read(realtimeServiceProvider);
+    try {
+      await rt.connect();
+      await rt.subscribeConversation(widget.conversationId);
+      _rtSub = rt.events.listen(_onRealtime);
+    } catch (_) {
+      // Realtime is best-effort; the screen still works via REST + pull-to-refresh.
+    }
+  }
+
+  void _onRealtime(RealtimeEvent e) {
+    if (e.name == 'message.new' && e.data['conversation_id'] == widget.conversationId) {
+      if (e.data['sender_id'] == _meId) return; // already shown locally
+      setState(() => _messages = [..._messages, ChatMessage.fromJson(e.data)]);
+    }
+  }
+
+  Future<void> _startCall(String type) async {
+    await ref.read(callControllerProvider.notifier).startOutgoing(widget.conversationId, type);
+    if (mounted) {
+      Navigator.of(context).push(
+        MaterialPageRoute(builder: (_) => const InCallScreen(title: 'Call')),
+      );
+    }
   }
 
   Future<void> _load() async {
@@ -39,6 +73,14 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
       _messages = msgs.reversed.toList(); // API returns newest-first
       _loading = false;
     });
+  }
+
+  @override
+  void dispose() {
+    _rtSub?.cancel();
+    _input.dispose();
+    _scroll.dispose();
+    super.dispose();
   }
 
   Future<void> _send() async {
@@ -63,7 +105,13 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Conversation')),
+      appBar: AppBar(
+        title: const Text('Conversation'),
+        actions: [
+          IconButton(icon: const Icon(Icons.call_outlined), onPressed: () => _startCall('voice')),
+          IconButton(icon: const Icon(Icons.videocam_outlined), onPressed: () => _startCall('video')),
+        ],
+      ),
       body: Column(
         children: [
           Expanded(

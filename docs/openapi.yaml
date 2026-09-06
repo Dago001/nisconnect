@@ -1,0 +1,443 @@
+openapi: 3.0.3
+info:
+  title: NISconnect API
+  version: "1.0.0"
+  description: >
+    Secure internal communication API for the Nigeria Immigration Service.
+    All authenticated endpoints use a Bearer token (Laravel Sanctum). Onboarding
+    and auth endpoints are public but rate limited. Errors use a stable envelope
+    `{ "message": string, "errors"?: object }` with no internal detail.
+servers:
+  - url: /api/v1
+tags:
+  - name: Auth
+  - name: Users
+  - name: Directory
+  - name: Chats
+  - name: Messages
+  - name: Groups
+  - name: Media
+  - name: Calls
+  - name: Channels
+  - name: Safety
+  - name: Notifications
+  - name: Devices
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+  schemas:
+    Error:
+      type: object
+      properties:
+        message: { type: string }
+        errors: { type: object, additionalProperties: true }
+    PersonnelRecord:
+      type: object
+      properties:
+        service_number: { type: string, example: "001234" }
+        surname: { type: string }
+        first_name: { type: string }
+        other_name: { type: string, nullable: true }
+        rank: { type: string, nullable: true }
+        directorate: { type: string, nullable: true }
+        department: { type: string, nullable: true }
+        zone: { type: string, nullable: true }
+        command: { type: string, nullable: true }
+        formation: { type: string, nullable: true }
+        unit: { type: string, nullable: true }
+        posting: { type: string, nullable: true }
+        official_email: { type: string, nullable: true }
+        status: { type: string, example: active }
+    User:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        service_number: { type: string }
+        display_name: { type: string }
+        account_state: { type: string, enum: [pending, active, suspended, locked, disabled, inactive] }
+        presence: { type: string, enum: [online, offline, away] }
+    Device:
+      type: object
+      properties:
+        name: { type: string }
+        platform: { type: string, enum: [android, ios, web] }
+        model: { type: string, nullable: true }
+        os_version: { type: string, nullable: true }
+        app_version: { type: string, nullable: true }
+    Message:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        conversation_id: { type: string, format: uuid }
+        sender_id: { type: string, format: uuid, nullable: true }
+        type: { type: string, enum: [text, image, video, document, audio, voice, system] }
+        body: { type: string, nullable: true }
+        status: { type: string, enum: [sending, sent, delivered, read, failed] }
+        created_at: { type: string, format: date-time }
+    TokenResponse:
+      type: object
+      properties:
+        access_token: { type: string }
+        token_type: { type: string, example: Bearer }
+        user: { $ref: '#/components/schemas/User' }
+
+security:
+  - bearerAuth: []
+
+paths:
+  /auth/verify-service-number:
+    post:
+      tags: [Auth]
+      security: []
+      summary: Verify a numeric Service Number
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [service_number]
+              properties:
+                service_number: { type: string, description: Digits only; leading zeroes significant. }
+      responses:
+        "200":
+          description: Verified (with record) or generic not-verified (anti-enumeration).
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  verified: { type: boolean }
+                  verification_id: { type: string, format: uuid }
+                  record: { $ref: '#/components/schemas/PersonnelRecord' }
+                  message: { type: string }
+        "422": { description: Invalid format, content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        "429": { description: Rate limited }
+        "503": { description: Personnel source unavailable }
+  /auth/confirm-identity:
+    post:
+      tags: [Auth]
+      security: []
+      summary: Confirm identity and phone; sends OTP
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [verification_id, phone]
+              properties:
+                verification_id: { type: string, format: uuid }
+                phone: { type: string, example: "+2348030000000" }
+      responses:
+        "200": { description: OTP sent }
+        "429": { description: Resend delay/limit }
+  /auth/resend-otp:
+    post:
+      tags: [Auth]
+      security: []
+      summary: Resend the onboarding OTP
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [verification_id]
+              properties: { verification_id: { type: string, format: uuid } }
+      responses: { "200": { description: OTP re-sent }, "429": { description: Throttled } }
+  /auth/verify-otp:
+    post:
+      tags: [Auth]
+      security: []
+      summary: Verify the OTP
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [verification_id, code]
+              properties:
+                verification_id: { type: string, format: uuid }
+                code: { type: string }
+      responses:
+        "200": { description: Verified }
+        "422": { description: Incorrect/expired }
+        "429": { description: Too many attempts }
+  /auth/set-credentials:
+    post:
+      tags: [Auth]
+      security: []
+      summary: Set PIN/password, register device, create account
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [verification_id, pin, device]
+              properties:
+                verification_id: { type: string, format: uuid }
+                pin: { type: string, description: 4-12 digits }
+                password: { type: string, nullable: true }
+                device: { $ref: '#/components/schemas/Device' }
+      responses:
+        "201": { description: Account created, content: { application/json: { schema: { $ref: '#/components/schemas/TokenResponse' } } } }
+        "422": { description: Step not satisfied / expired session }
+  /auth/login:
+    post:
+      tags: [Auth]
+      security: []
+      summary: Login by Service Number + PIN
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [service_number, device]
+              properties:
+                service_number: { type: string }
+                pin: { type: string }
+                password: { type: string }
+                device: { $ref: '#/components/schemas/Device' }
+      responses:
+        "200": { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/TokenResponse' } } } }
+        "401": { description: Invalid credentials }
+        "403": { description: Account not active }
+  /auth/logout:
+    post: { tags: [Auth], summary: Revoke current token, responses: { "200": { description: OK } } }
+
+  /users/me:
+    get: { tags: [Users], summary: Current officer, responses: { "200": { description: OK } } }
+    patch: { tags: [Users], summary: Update display name, responses: { "200": { description: OK } } }
+  /users/me/privacy:
+    put:
+      tags: [Users]
+      summary: Update privacy settings
+      responses: { "200": { description: OK } }
+
+  /directory/search:
+    get:
+      tags: [Directory]
+      summary: Search personnel directory (rate limited, filter required)
+      parameters:
+        - { name: q, in: query, schema: { type: string } }
+        - { name: directorate, in: query, schema: { type: string } }
+        - { name: department, in: query, schema: { type: string } }
+        - { name: command, in: query, schema: { type: string } }
+        - { name: rank, in: query, schema: { type: string } }
+        - { name: per_page, in: query, schema: { type: integer, maximum: 25 } }
+      responses:
+        "200": { description: OK }
+        "422": { description: No search term }
+        "429": { description: Rate limited }
+  /directory/{serviceNumber}:
+    get:
+      tags: [Directory]
+      parameters: [{ name: serviceNumber, in: path, required: true, schema: { type: string } }]
+      responses: { "200": { description: OK }, "404": { description: Not found } }
+
+  /chats:
+    get: { tags: [Chats], summary: List conversations, responses: { "200": { description: OK } } }
+    post:
+      tags: [Chats]
+      summary: Start/resume a direct chat by Service Number
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { type: object, required: [service_number], properties: { service_number: { type: string } } }
+      responses: { "201": { description: Created }, "404": { description: Officer not found } }
+  /chats/{conversation}:
+    get:
+      tags: [Chats]
+      parameters: [{ name: conversation, in: path, required: true, schema: { type: string, format: uuid } }]
+      responses: { "200": { description: OK }, "403": { description: Not a member } }
+  /chats/{conversation}/messages:
+    get:
+      tags: [Messages]
+      summary: Cursor-paginated history (newest first)
+      parameters:
+        - { name: conversation, in: path, required: true, schema: { type: string, format: uuid } }
+        - { name: cursor, in: query, schema: { type: string } }
+      responses: { "200": { description: OK } }
+    post:
+      tags: [Messages]
+      summary: Send a message
+      parameters: [{ name: conversation, in: path, required: true, schema: { type: string, format: uuid } }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [type]
+              properties:
+                type: { type: string, enum: [text, image, video, document, audio, voice] }
+                body: { type: string }
+                reply_to_id: { type: string, format: uuid }
+                attachments: { type: array, items: { type: string, format: uuid } }
+      responses: { "201": { description: Created, content: { application/json: { schema: { $ref: '#/components/schemas/Message' } } } }, "422": { description: Blocked/not a member } }
+  /chats/{conversation}/typing:
+    post:
+      tags: [Messages]
+      parameters: [{ name: conversation, in: path, required: true, schema: { type: string, format: uuid } }]
+      responses: { "200": { description: OK } }
+  /messages/search:
+    get:
+      tags: [Messages]
+      summary: Full-text search scoped to the user's conversations
+      parameters:
+        - { name: q, in: query, required: true, schema: { type: string } }
+        - { name: conversation_id, in: query, schema: { type: string, format: uuid } }
+        - { name: type, in: query, schema: { type: string } }
+      responses: { "200": { description: OK } }
+  /messages/{message}/read:
+    post: { tags: [Messages], parameters: [{ name: message, in: path, required: true, schema: { type: string, format: uuid } }], responses: { "200": { description: OK } } }
+  /messages/{message}/react:
+    post:
+      tags: [Messages]
+      parameters: [{ name: message, in: path, required: true, schema: { type: string, format: uuid } }]
+      requestBody: { required: true, content: { application/json: { schema: { type: object, required: [emoji], properties: { emoji: { type: string } } } } } }
+      responses: { "200": { description: OK } }
+  /messages/{message}:
+    delete: { tags: [Messages], parameters: [{ name: message, in: path, required: true, schema: { type: string, format: uuid } }], responses: { "200": { description: OK }, "403": { description: Not the sender } } }
+
+  /groups:
+    get: { tags: [Groups], responses: { "200": { description: OK } } }
+    post:
+      tags: [Groups]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name]
+              properties:
+                name: { type: string }
+                description: { type: string }
+                members: { type: array, items: { type: string, format: uuid } }
+      responses: { "201": { description: Created } }
+  /groups/{group}/members:
+    post:
+      tags: [Groups]
+      parameters: [{ name: group, in: path, required: true, schema: { type: string, format: uuid } }]
+      responses: { "200": { description: OK }, "403": { description: Not an admin } }
+  /groups/{group}/members/{userId}:
+    delete:
+      tags: [Groups]
+      parameters:
+        - { name: group, in: path, required: true, schema: { type: string, format: uuid } }
+        - { name: userId, in: path, required: true, schema: { type: string, format: uuid } }
+      responses: { "200": { description: OK }, "403": { description: Not an admin } }
+  /groups/{group}/leave:
+    post: { tags: [Groups], parameters: [{ name: group, in: path, required: true, schema: { type: string, format: uuid } }], responses: { "200": { description: OK } } }
+
+  /media:
+    post:
+      tags: [Media]
+      summary: Upload a file to private storage
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [file, kind]
+              properties:
+                file: { type: string, format: binary }
+                kind: { type: string, enum: [image, video, document, audio, voice] }
+      responses: { "201": { description: Created }, "422": { description: Invalid type/size } }
+  /media/{media}:
+    get:
+      tags: [Media]
+      summary: Authenticated, ownership-checked download
+      parameters: [{ name: media, in: path, required: true, schema: { type: string, format: uuid } }]
+      responses: { "200": { description: File stream }, "403": { description: No access } }
+
+  /calls:
+    post:
+      tags: [Calls]
+      summary: Initiate a call (returns a LiveKit token)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [conversation_id, type]
+              properties:
+                conversation_id: { type: string, format: uuid }
+                type: { type: string, enum: [voice, video] }
+      responses: { "201": { description: Created } }
+  /calls/history:
+    get: { tags: [Calls], responses: { "200": { description: OK } } }
+  /calls/{call}/token:
+    get: { tags: [Calls], parameters: [{ name: call, in: path, required: true, schema: { type: string, format: uuid } }], responses: { "200": { description: OK }, "403": { description: Not a participant } } }
+  /calls/{call}/answer:
+    post: { tags: [Calls], parameters: [{ name: call, in: path, required: true, schema: { type: string, format: uuid } }], responses: { "200": { description: OK } } }
+  /calls/{call}/decline:
+    post: { tags: [Calls], parameters: [{ name: call, in: path, required: true, schema: { type: string, format: uuid } }], responses: { "200": { description: OK } } }
+  /calls/{call}/end:
+    post: { tags: [Calls], parameters: [{ name: call, in: path, required: true, schema: { type: string, format: uuid } }], responses: { "200": { description: OK } } }
+
+  /channels:
+    get: { tags: [Channels], responses: { "200": { description: OK } } }
+  /channels/{channel}:
+    get: { tags: [Channels], parameters: [{ name: channel, in: path, required: true, schema: { type: string, format: uuid } }], responses: { "200": { description: OK } } }
+  /channels/{channel}/posts:
+    get: { tags: [Channels], parameters: [{ name: channel, in: path, required: true, schema: { type: string, format: uuid } }], responses: { "200": { description: OK } } }
+    post:
+      tags: [Channels]
+      summary: Publish (publisher role only)
+      parameters: [{ name: channel, in: path, required: true, schema: { type: string, format: uuid } }]
+      requestBody: { required: true, content: { application/json: { schema: { type: object, required: [body], properties: { body: { type: string } } } } } }
+      responses: { "201": { description: Created }, "403": { description: Not a publisher } }
+  /channels/{channel}/subscribe:
+    post: { tags: [Channels], parameters: [{ name: channel, in: path, required: true, schema: { type: string, format: uuid } }], responses: { "200": { description: OK } } }
+
+  /safety/block:
+    post: { tags: [Safety], requestBody: { required: true, content: { application/json: { schema: { type: object, required: [user_id], properties: { user_id: { type: string, format: uuid } } } } } }, responses: { "200": { description: OK } } }
+  /safety/unblock:
+    post: { tags: [Safety], requestBody: { required: true, content: { application/json: { schema: { type: object, required: [user_id], properties: { user_id: { type: string, format: uuid } } } } } }, responses: { "200": { description: OK } } }
+  /safety/report:
+    post:
+      tags: [Safety]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [target_type, target_id, reason]
+              properties:
+                target_type: { type: string, enum: [user, message, group] }
+                target_id: { type: string, format: uuid }
+                reason: { type: string }
+                details: { type: string }
+      responses: { "201": { description: Created } }
+
+  /notifications:
+    get: { tags: [Notifications], responses: { "200": { description: OK } } }
+  /notifications/read-all:
+    post: { tags: [Notifications], responses: { "200": { description: OK } } }
+  /notifications/{notification}/read:
+    post: { tags: [Notifications], parameters: [{ name: notification, in: path, required: true, schema: { type: string, format: uuid } }], responses: { "200": { description: OK }, "403": { description: Not owner } } }
+
+  /devices:
+    get: { tags: [Devices], responses: { "200": { description: OK } } }
+  /devices/push-token:
+    post:
+      tags: [Devices]
+      requestBody: { required: true, content: { application/json: { schema: { type: object, required: [provider, token], properties: { provider: { type: string, enum: [fcm, apns] }, token: { type: string } } } } } }
+      responses: { "200": { description: OK } }
+  /devices/all:
+    delete: { tags: [Devices], summary: Sign out all other devices, responses: { "200": { description: OK } } }
+  /devices/{device}:
+    delete: { tags: [Devices], parameters: [{ name: device, in: path, required: true, schema: { type: string, format: uuid } }], responses: { "200": { description: OK }, "403": { description: Not owner } } }

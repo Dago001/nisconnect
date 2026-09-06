@@ -37,7 +37,7 @@ nisconnect/
 | [docs/SECURITY.md](docs/SECURITY.md) | Threat model, auth, OTP, RBAC + org scoping, message security (what is/ isn't encrypted), audit, recovery |
 | [docs/PERSONNEL_INTEGRATION.md](docs/PERSONNEL_INTEGRATION.md) | Personnel provider interface, demo/api/database adapters, Service Number rules |
 | [docs/DESIGN_SYSTEM.md](docs/DESIGN_SYSTEM.md) | Green colour system, Arial typography, components, dark mode, accessibility |
-| [docs/API.md](docs/API.md) | Full v1 endpoint reference and realtime channels |
+| [docs/API.md](docs/API.md) · [docs/openapi.yaml](docs/openapi.yaml) | Full v1 endpoint reference + OpenAPI 3.0 spec (45 paths) |
 | [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) | Docker stack, production checklist, backups, RPO/RTO, CI/CD |
 
 ## What is implemented and tested (backend)
