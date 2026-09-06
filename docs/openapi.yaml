@@ -212,6 +212,45 @@ paths:
   /auth/logout:
     post: { tags: [Auth], summary: Revoke current token, responses: { "200": { description: OK } } }
 
+  /auth/recover/start:
+    post:
+      tags: [Auth]
+      security: []
+      summary: Start account recovery (registered phone + OTP; never SN alone)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { type: object, required: [service_number], properties: { service_number: { type: string } } }
+      responses: { "200": { description: Generic response; OTP sent only if an account with a phone exists } }
+  /auth/recover/verify:
+    post:
+      tags: [Auth]
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { type: object, required: [verification_id, code], properties: { verification_id: { type: string, format: uuid }, code: { type: string } } }
+      responses: { "200": { description: Verified }, "422": { description: Incorrect/expired } }
+  /auth/recover/reset:
+    post:
+      tags: [Auth]
+      security: []
+      summary: Set new PIN + register device; revokes all prior sessions
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [verification_id, pin, device]
+              properties:
+                verification_id: { type: string, format: uuid }
+                pin: { type: string }
+                device: { $ref: '#/components/schemas/Device' }
+      responses: { "200": { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/TokenResponse' } } } }, "422": { description: Not verified } }
+
   /users/me:
     get: { tags: [Users], summary: Current officer, responses: { "200": { description: OK } } }
     patch: { tags: [Users], summary: Update display name, responses: { "200": { description: OK } } }

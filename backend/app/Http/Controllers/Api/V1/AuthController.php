@@ -16,6 +16,7 @@ use App\Models\User;
 use App\Personnel\PersonnelSourceUnavailableException;
 use App\Services\Auth\OnboardingService;
 use App\Services\Auth\PersonnelVerificationService;
+use App\Services\Auth\RecoveryService;
 use App\Services\Support\AuditLogger;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -28,6 +29,7 @@ class AuthController extends Controller
     public function __construct(
         private readonly PersonnelVerificationService $personnel,
         private readonly OnboardingService $onboarding,
+        private readonly RecoveryService $recovery,
         private readonly AuditLogger $audit,
     ) {
     }
@@ -189,6 +191,52 @@ class AuthController extends Controller
             'access_token' => $token->plainTextToken,
             'token_type' => 'Bearer',
             'user' => new UserResource($user->load('personnelRecord')),
+        ]);
+    }
+
+    /**
+     * Account recovery — step 1. Requires the registered phone (OTP), never the
+     * Service Number alone. Generic response prevents account enumeration.
+     */
+    public function recoverStart(VerifyServiceNumberRequest $request): JsonResponse
+    {
+        $result = $this->recovery->start($request->validated('service_number'));
+
+        // The recovery id is carried as `verification_id` through the next steps.
+        return response()->json(array_filter([
+            'verification_id' => $result['recovery_id'],
+            'message' => 'If this Service Number has a registered phone, a code has been sent.',
+            'debug_code' => $result['code'],
+        ], fn ($v) => $v !== null));
+    }
+
+    public function recoverVerify(VerifyOtpRequest $request): JsonResponse
+    {
+        $result = $this->recovery->verify(
+            $request->validated('verification_id'),
+            $request->validated('code'),
+        );
+
+        return match ($result) {
+            'verified' => response()->json(['verified' => true]),
+            'too_many_attempts' => response()->json(['verified' => false, 'message' => 'Too many attempts.'], 429),
+            'expired' => response()->json(['verified' => false, 'message' => 'This code has expired.'], 422),
+            default => response()->json(['verified' => false, 'message' => 'The code you entered is incorrect.'], 422),
+        };
+    }
+
+    public function recoverReset(SetCredentialsRequest $request): JsonResponse
+    {
+        $result = $this->recovery->reset(
+            $request->validated('verification_id'),
+            $request->validated('pin'),
+            $request->validated('device'),
+        );
+
+        return response()->json([
+            'access_token' => $result['token'],
+            'token_type' => 'Bearer',
+            'user' => new UserResource($result['user']->load('personnelRecord')),
         ]);
     }
 

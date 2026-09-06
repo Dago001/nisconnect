@@ -13,6 +13,9 @@ with no internal detail. Onboarding, OTP, login and directory routes are rate li
 | POST | `/auth/verify-otp` | `{ verification_id, code }` | Server-side verify. |
 | POST | `/auth/set-credentials` | `{ verification_id, pin, password?, device{name,platform,...} }` | Creates account + device, returns `access_token`. |
 | POST | `/auth/login` | `{ service_number, pin, device{name,platform} }` | Returns `access_token`. |
+| POST | `/auth/recover/start` | `{ service_number }` | Sends OTP to the registered phone (generic response). Never recovers by SN alone. |
+| POST | `/auth/recover/verify` | `{ verification_id, code }` | Verify recovery OTP. |
+| POST | `/auth/recover/reset` | `{ verification_id, pin, device }` | New PIN + device; revokes all prior sessions/devices; raises a security event. |
 
 ## Auth (bearer)
 | Method | Path | Notes |

@@ -30,6 +30,11 @@ Route::prefix('v1')->group(function () {
             ->middleware('throttle:verify');
         Route::post('login', [AuthController::class, 'login'])
             ->middleware('throttle:login');
+
+        // Account recovery (requires registered phone + OTP; never SN alone).
+        Route::post('recover/start', [AuthController::class, 'recoverStart'])->middleware('throttle:login');
+        Route::post('recover/verify', [AuthController::class, 'recoverVerify'])->middleware('throttle:otp');
+        Route::post('recover/reset', [AuthController::class, 'recoverReset'])->middleware('throttle:verify');
     });
 
     // --- Authenticated ------------------------------------------------------
