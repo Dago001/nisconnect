@@ -1,0 +1,117 @@
+name: nisconnect
+
+# NISconnect local/production-shaped stack. Copy backend/.env.example to
+# backend/.env and set values before `docker compose up`. Never commit .env.
+services:
+  app:
+    build:
+      context: ..
+      dockerfile: infrastructure/php.Dockerfile
+    working_dir: /var/www/backend
+    volumes:
+      - ../backend:/var/www/backend
+      - storage:/var/www/backend/storage
+    env_file:
+      - ../backend/.env
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    restart: unless-stopped
+
+  nginx:
+    image: nginx:1.27-alpine
+    ports:
+      - "8000:80"
+    volumes:
+      - ../backend:/var/www/backend
+      - ./nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
+    depends_on:
+      - app
+    restart: unless-stopped
+
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: ${DB_DATABASE:-nisconnect}
+      POSTGRES_USER: ${DB_USERNAME:-nisconnect}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-secret}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USERNAME:-nisconnect}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - redisdata:/data
+    restart: unless-stopped
+
+  # WebSocket server (Laravel Reverb) — real-time messaging/presence/typing.
+  reverb:
+    build:
+      context: ..
+      dockerfile: infrastructure/php.Dockerfile
+    working_dir: /var/www/backend
+    command: ["php", "artisan", "reverb:start", "--host=0.0.0.0", "--port=8080"]
+    ports:
+      - "8080:8080"
+    volumes:
+      - ../backend:/var/www/backend
+    env_file:
+      - ../backend/.env
+    depends_on:
+      - redis
+    restart: unless-stopped
+
+  # Queue worker — broadcasts, push notifications, media processing, audits.
+  worker:
+    build:
+      context: ..
+      dockerfile: infrastructure/php.Dockerfile
+    working_dir: /var/www/backend
+    command: ["php", "artisan", "queue:work", "--tries=3", "--timeout=90"]
+    volumes:
+      - ../backend:/var/www/backend
+      - storage:/var/www/backend/storage
+    env_file:
+      - ../backend/.env
+    depends_on:
+      - redis
+      - postgres
+    restart: unless-stopped
+
+  # Private object storage (S3-compatible) for media. Not publicly exposed.
+  minio:
+    image: minio/minio:latest
+    command: ["server", "/data", "--console-address", ":9001"]
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-nisconnect}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-changeme-strong}
+    volumes:
+      - miniodata:/data
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    restart: unless-stopped
+
+  # SFU for voice/video/group calls (see docs/ARCHITECTURE §5).
+  livekit:
+    image: livekit/livekit-server:latest
+    command: ["--dev", "--bind", "0.0.0.0"]
+    ports:
+      - "7880:7880"
+      - "7881:7881"
+    restart: unless-stopped
+
+volumes:
+  pgdata:
+  redisdata:
+  miniodata:
+  storage:

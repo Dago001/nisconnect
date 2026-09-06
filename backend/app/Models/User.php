@@ -60,6 +60,14 @@ class User extends Authenticatable implements AuthenticatableContract
     }
 
     /**
+     * The admin portal (web guard) authenticates against the login password.
+     */
+    public function getAuthPassword(): string
+    {
+        return (string) $this->password_hash;
+    }
+
+    /**
      * Default privacy settings applied when none are set.
      *
      * @return array<string, string>

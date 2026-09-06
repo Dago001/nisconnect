@@ -37,6 +37,8 @@ nisconnect/
 | [docs/SECURITY.md](docs/SECURITY.md) | Threat model, auth, OTP, RBAC + org scoping, message security (what is/ isn't encrypted), audit, recovery |
 | [docs/PERSONNEL_INTEGRATION.md](docs/PERSONNEL_INTEGRATION.md) | Personnel provider interface, demo/api/database adapters, Service Number rules |
 | [docs/DESIGN_SYSTEM.md](docs/DESIGN_SYSTEM.md) | Green colour system, Arial typography, components, dark mode, accessibility |
+| [docs/API.md](docs/API.md) | Full v1 endpoint reference and realtime channels |
+| [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) | Docker stack, production checklist, backups, RPO/RTO, CI/CD |
 
 ## What is implemented and tested (backend)
 
@@ -52,7 +54,11 @@ nisconnect/
 - **Device management** — list, revoke one, revoke all others.
 - **Audit + security events**, RBAC + organisational schema, full normalised PostgreSQL
   schema (45+ tables), seeders.
-- **27 passing tests** (feature + unit) against PostgreSQL.
+- **Admin portal** (Laravel/Blade, server-rendered, RBAC-gated): dashboard stats,
+  user search, suspend/reactivate, revoke devices — all audited. At `/admin/login`.
+- **Docker stack** (`infrastructure/`): Nginx, PHP-FPM, PostgreSQL, Redis, Reverb
+  (WebSockets), queue worker, MinIO, LiveKit; plus GitHub Actions CI.
+- **39 passing tests** (feature + unit) against PostgreSQL.
 
 See the roadmap in [docs/ARCHITECTURE.md §12](docs/ARCHITECTURE.md#12-development-roadmap)
 for phase status. Messaging/calls/push and the Flutter client are scaffolded per the
