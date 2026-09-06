@@ -19,6 +19,8 @@ backend/storage/*.key
 backend/.phpunit.result.cache
 
 # Flutter / Dart
+# Local Flutter SDK checkout (~600MB, has its own .git) — never commit
+/flutter/
 mobile/.dart_tool/
 mobile/.flutter-plugins
 mobile/.flutter-plugins-dependencies
