@@ -1,12 +1,16 @@
 <?php
 
 use App\Http\Controllers\Api\V1\AuthController;
+use App\Http\Controllers\Api\V1\CallController;
+use App\Http\Controllers\Api\V1\ChannelController;
 use App\Http\Controllers\Api\V1\ChatController;
 use App\Http\Controllers\Api\V1\DeviceController;
 use App\Http\Controllers\Api\V1\DirectoryController;
 use App\Http\Controllers\Api\V1\GroupController;
 use App\Http\Controllers\Api\V1\MediaController;
 use App\Http\Controllers\Api\V1\MessageController;
+use App\Http\Controllers\Api\V1\NotificationController;
+use App\Http\Controllers\Api\V1\SafetyController;
 use App\Http\Controllers\Api\V1\UserController;
 use Illuminate\Support\Facades\Route;
 
@@ -66,5 +70,30 @@ Route::prefix('v1')->group(function () {
         // Media
         Route::post('media', [MediaController::class, 'upload']);
         Route::get('media/{media}', [MediaController::class, 'show'])->name('media.show');
+
+        // Calls (LiveKit signalling)
+        Route::post('calls', [CallController::class, 'store']);
+        Route::get('calls/history', [CallController::class, 'history']);
+        Route::get('calls/{call}/token', [CallController::class, 'token']);
+        Route::post('calls/{call}/answer', [CallController::class, 'answer']);
+        Route::post('calls/{call}/decline', [CallController::class, 'decline']);
+        Route::post('calls/{call}/end', [CallController::class, 'end']);
+
+        // Official channels
+        Route::get('channels', [ChannelController::class, 'index']);
+        Route::get('channels/{channel}', [ChannelController::class, 'show']);
+        Route::get('channels/{channel}/posts', [ChannelController::class, 'posts']);
+        Route::post('channels/{channel}/posts', [ChannelController::class, 'publish']);
+        Route::post('channels/{channel}/subscribe', [ChannelController::class, 'subscribe']);
+
+        // Safety
+        Route::post('safety/block', [SafetyController::class, 'block']);
+        Route::post('safety/unblock', [SafetyController::class, 'unblock']);
+        Route::post('safety/report', [SafetyController::class, 'report']);
+
+        // Notifications
+        Route::get('notifications', [NotificationController::class, 'index']);
+        Route::post('notifications/read-all', [NotificationController::class, 'readAll']);
+        Route::post('notifications/{notification}/read', [NotificationController::class, 'read']);
     });
 });

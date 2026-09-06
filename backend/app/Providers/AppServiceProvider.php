@@ -16,6 +16,10 @@ class AppServiceProvider extends ServiceProvider
 {
     public function register(): void
     {
+        $this->app->singleton(\App\Services\Calls\LiveKitTokenService::class, function () {
+            return new \App\Services\Calls\LiveKitTokenService((array) config('services.livekit', []));
+        });
+
         $this->app->singleton(OtpSenderInterface::class, function (Application $app) {
             $driver = (string) config('otp.driver', 'log');
 
