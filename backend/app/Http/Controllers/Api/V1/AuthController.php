@@ -22,6 +22,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\RateLimiter;
 use RuntimeException;
 
 class AuthController extends Controller
@@ -152,7 +153,29 @@ class AuthController extends Controller
 
         $genericFail = fn () => response()->json(['message' => 'Invalid Service Number or credentials.'], 401);
 
+        // Per-account lockout on top of the per-IP route throttle: too many
+        // failed attempts for one Service Number are blocked regardless of IP.
+        $lockKey = 'login-account:'.$data['service_number'];
+        $maxAttempts = 5;
+        if (RateLimiter::tooManyAttempts($lockKey, $maxAttempts)) {
+            $seconds = RateLimiter::availableIn($lockKey);
+            if ($user) {
+                $this->audit->security('account_locked_out', userId: $user->id, severity: 'warning',
+                    metadata: ['retry_after' => $seconds]);
+            }
+
+            return response()->json([
+                'message' => "Too many failed attempts. Please try again in {$seconds} seconds.",
+            ], 429);
+        }
+
+        $recordFailure = function () use ($lockKey) {
+            // Lockout window: 15 minutes.
+            RateLimiter::hit($lockKey, 900);
+        };
+
         if (! $user) {
+            $recordFailure();
             $this->audit->log('login.failed', resourceType: 'user', result: 'failure',
                 metadata: ['service_number' => $data['service_number']]);
 
@@ -167,11 +190,15 @@ class AuthController extends Controller
         $hash = ! empty($data['pin']) ? $user->pin_hash : $user->password_hash;
 
         if (empty($hash) || ! Hash::check($secret, $hash)) {
+            $recordFailure();
             $this->audit->log('login.failed', actorId: $user->id, resourceType: 'user', result: 'failure');
             $this->audit->security('failed_login', userId: $user->id, severity: 'warning');
 
             return $genericFail();
         }
+
+        // Successful login clears the lockout counter.
+        RateLimiter::clear($lockKey);
 
         $device = Device::firstOrCreate(
             ['user_id' => $user->id, 'name' => $data['device']['name'], 'platform' => $data['device']['platform']],

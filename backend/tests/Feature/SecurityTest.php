@@ -85,6 +85,32 @@ class SecurityTest extends TestCase
         $this->assertSame(0, User::count());
     }
 
+    public function test_repeated_failed_logins_lock_the_account(): void
+    {
+        User::factory()->create(['service_number' => '191919']);
+        $attempt = fn () => $this->postJson('/api/v1/auth/login', [
+            'service_number' => '191919',
+            'pin' => '0000', // wrong
+            'device' => ['name' => 'X', 'platform' => 'android'],
+        ]);
+
+        // 5 wrong attempts are allowed (401), the 6th is locked out (429).
+        for ($i = 0; $i < 5; $i++) {
+            $attempt()->assertStatus(401);
+        }
+        $attempt()->assertStatus(429);
+        $this->assertDatabaseHas('security_events', ['event' => 'account_locked_out']);
+    }
+
+    public function test_login_requires_a_credential(): void
+    {
+        User::factory()->create(['service_number' => '202020']);
+        $this->postJson('/api/v1/auth/login', [
+            'service_number' => '202020',
+            'device' => ['name' => 'X', 'platform' => 'android'],
+        ])->assertStatus(422)->assertJsonValidationErrors(['pin', 'password']);
+    }
+
     public function test_token_is_revoked_on_logout(): void
     {
         $user = User::factory()->create();
