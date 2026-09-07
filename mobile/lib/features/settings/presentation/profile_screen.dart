@@ -6,6 +6,7 @@ import '../../../core/network/api_client.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_typography.dart';
 import '../../auth/data/auth_repository.dart';
+import '../../safety/presentation/blocked_users_screen.dart';
 
 final meProvider = FutureProvider<Map<String, dynamic>>((ref) async {
   final res = await ref.watch(apiClientProvider).get('/users/me');
@@ -43,6 +44,11 @@ class ProfileScreen extends ConsumerWidget {
             _tile(context, Icons.security_outlined, 'Security'),
             _tile(context, Icons.devices_outlined, 'My Devices', onTap: () {}),
             _tile(context, Icons.lock_outline, 'Privacy'),
+            _tile(context, Icons.block_outlined, 'Blocked officers', onTap: () {
+              Navigator.of(context).push(MaterialPageRoute(
+                builder: (_) => const BlockedUsersScreen(),
+              ));
+            }),
             _tile(context, Icons.notifications_outlined, 'Notifications'),
             _tile(context, Icons.info_outline, 'About NISconnect'),
             const Divider(),

@@ -25,6 +25,8 @@ class ChatMessage {
     this.body,
     required this.status,
     this.createdAt,
+    this.editedAt,
+    this.pinnedAt,
   });
   final String id;
   final String? senderId;
@@ -32,6 +34,8 @@ class ChatMessage {
   final String? body;
   final String status;
   final String? createdAt;
+  final String? editedAt;
+  final String? pinnedAt;
 
   factory ChatMessage.fromJson(Map<String, dynamic> j) => ChatMessage(
         id: j['id'] as String,
@@ -40,6 +44,8 @@ class ChatMessage {
         body: j['body'] as String?,
         status: j['status'] as String,
         createdAt: j['created_at'] as String?,
+        editedAt: j['edited_at'] as String?,
+        pinnedAt: j['pinned_at'] as String?,
       );
 }
 
@@ -72,6 +78,28 @@ class ChatRepository {
   }
 
   Future<void> markRead(String messageId) => _api.post('/messages/$messageId/read');
+
+  Future<ChatMessage> edit(String messageId, String body) async {
+    final res = await _api.patch('/messages/$messageId', data: {'body': body});
+    return ChatMessage.fromJson((res.data as Map<String, dynamic>)['data'] as Map<String, dynamic>);
+  }
+
+  Future<void> pin(String messageId, bool pinned) =>
+      _api.post('/messages/$messageId/pin', data: {'pinned': pinned});
+
+  Future<ChatMessage> forward(String messageId, String toConversationId) async {
+    final res = await _api.post('/messages/$messageId/forward',
+        data: {'conversation_id': toConversationId});
+    return ChatMessage.fromJson((res.data as Map<String, dynamic>)['data'] as Map<String, dynamic>);
+  }
+
+  Future<void> react(String messageId, String emoji) =>
+      _api.post('/messages/$messageId/react', data: {'emoji': emoji});
+
+  Future<void> delete(String messageId) => _api.delete('/messages/$messageId');
+
+  Future<void> sendTyping(String conversationId) =>
+      _api.post('/chats/$conversationId/typing');
 }
 
 final chatRepositoryProvider = Provider<ChatRepository>((ref) {

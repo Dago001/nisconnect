@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../../core/storage/secure_storage.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_typography.dart';
+import '../../../services/biometric/biometric_service.dart';
 
 /// Branded splash. Decides where to go based on whether a token exists.
 class SplashScreen extends ConsumerStatefulWidget {
@@ -24,7 +25,24 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
     final token = await ref.read(secureStorageProvider).readToken();
     await Future<void>.delayed(const Duration(milliseconds: 600));
     if (!mounted) return;
-    context.go(token != null ? '/home' : '/welcome');
+
+    if (token == null) {
+      context.go('/welcome');
+      return;
+    }
+
+    // Biometric unlock gate: when the device supports it, require a successful
+    // biometric before entering. Raw biometrics never leave the device.
+    final biometric = ref.read(biometricServiceProvider);
+    if (await biometric.isAvailable()) {
+      final ok = await biometric.authenticate(reason: 'Unlock NISconnect');
+      if (!mounted) return;
+      if (!ok) {
+        context.go('/welcome');
+        return;
+      }
+    }
+    context.go('/home');
   }
 
   @override

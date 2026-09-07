@@ -10,6 +10,7 @@ import '../../../services/websocket/realtime_service.dart';
 import '../../calls/presentation/call_controller.dart';
 import '../../calls/presentation/in_call_screen.dart';
 import '../data/chat_repository.dart';
+import 'message_actions_sheet.dart';
 
 /// One-to-one / group conversation view. Loads history and sends messages via
 /// the API; realtime delivery is layered on by the websocket service.
@@ -121,10 +122,19 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
                     controller: _scroll,
                     padding: const EdgeInsets.all(12),
                     itemCount: _messages.length,
-                    itemBuilder: (context, i) => _Bubble(
-                      message: _messages[i],
-                      mine: _meId != null && _messages[i].senderId == _meId,
-                    ),
+                    itemBuilder: (context, i) {
+                      final msg = _messages[i];
+                      final mine = _meId != null && msg.senderId == _meId;
+                      return GestureDetector(
+                        onLongPress: () => MessageActionsSheet.show(
+                          context,
+                          message: msg,
+                          isMine: mine,
+                          onChanged: _load,
+                        ),
+                        child: _Bubble(message: msg, mine: mine),
+                      );
+                    },
                   ),
           ),
           _Composer(controller: _input, sending: _sending, onSend: _send),

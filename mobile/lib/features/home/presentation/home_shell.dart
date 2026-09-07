@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/theme/app_colors.dart';
+import '../../../services/presence/presence_service.dart';
+import '../../../services/push/push_service.dart';
 import '../../calls/presentation/calls_screen.dart';
 import '../../chat/presentation/chats_screen.dart';
 import '../../directory/presentation/directory_screen.dart';
@@ -8,15 +11,15 @@ import '../../groups/presentation/groups_screen.dart';
 import '../../settings/presentation/profile_screen.dart';
 
 /// Bottom-navigation shell: Chats · Calls · Directory · Groups · Profile.
-class HomeShell extends StatefulWidget {
+class HomeShell extends ConsumerStatefulWidget {
   const HomeShell({super.key, this.initialIndex = 0});
   final int initialIndex;
 
   @override
-  State<HomeShell> createState() => _HomeShellState();
+  ConsumerState<HomeShell> createState() => _HomeShellState();
 }
 
-class _HomeShellState extends State<HomeShell> {
+class _HomeShellState extends ConsumerState<HomeShell> {
   late int _index = widget.initialIndex;
 
   static const _screens = [
@@ -26,6 +29,22 @@ class _HomeShellState extends State<HomeShell> {
     GroupsScreen(),
     ProfileScreen(),
   ];
+
+  @override
+  void initState() {
+    super.initState();
+    // Register for push and start reporting presence once the officer is in.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      ref.read(pushServiceProvider).registerForCurrentDevice();
+      ref.read(presenceServiceProvider).start();
+    });
+  }
+
+  @override
+  void dispose() {
+    ref.read(presenceServiceProvider).stop();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
