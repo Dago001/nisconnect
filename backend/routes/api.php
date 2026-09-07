@@ -44,6 +44,7 @@ Route::prefix('v1')->group(function () {
         Route::get('users/me', [UserController::class, 'me']);
         Route::patch('users/me', [UserController::class, 'update']);
         Route::put('users/me/privacy', [UserController::class, 'updatePrivacy']);
+        Route::put('users/me/presence', [UserController::class, 'updatePresence']);
 
         Route::get('directory/search', [DirectoryController::class, 'search'])
             ->middleware('throttle:directory');
@@ -65,6 +66,9 @@ Route::prefix('v1')->group(function () {
         Route::get('messages/search', [MessageController::class, 'search']);
         Route::post('messages/{message}/read', [MessageController::class, 'markRead']);
         Route::post('messages/{message}/react', [MessageController::class, 'react']);
+        Route::patch('messages/{message}', [MessageController::class, 'update']);
+        Route::post('messages/{message}/pin', [MessageController::class, 'pin']);
+        Route::post('messages/{message}/forward', [MessageController::class, 'forward']);
         Route::delete('messages/{message}', [MessageController::class, 'destroy']);
 
         // Groups
@@ -94,6 +98,7 @@ Route::prefix('v1')->group(function () {
         Route::post('channels/{channel}/subscribe', [ChannelController::class, 'subscribe']);
 
         // Safety
+        Route::get('safety/blocked', [SafetyController::class, 'blocked']);
         Route::post('safety/block', [SafetyController::class, 'block']);
         Route::post('safety/unblock', [SafetyController::class, 'unblock']);
         Route::post('safety/report', [SafetyController::class, 'report']);

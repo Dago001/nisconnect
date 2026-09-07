@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api\V1;
 use App\Http\Controllers\Controller;
 use App\Models\User;
 use App\Services\Support\AuditLogger;
+use App\Services\Support\PrivacyService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -15,7 +16,10 @@ use Illuminate\Http\Request;
  */
 class DirectoryController extends Controller
 {
-    public function __construct(private readonly AuditLogger $audit) {}
+    public function __construct(
+        private readonly AuditLogger $audit,
+        private readonly PrivacyService $privacy,
+    ) {}
 
     public function search(Request $request): JsonResponse
     {
@@ -66,7 +70,7 @@ class DirectoryController extends Controller
             metadata: ['filters' => array_keys(array_filter($data)), 'count' => $results->total()]);
 
         return response()->json([
-            'data' => collect($results->items())->map(fn (User $u) => $this->officerCard($u)),
+            'data' => collect($results->items())->map(fn (User $u) => $this->officerCard($u, $request->user())),
             'meta' => [
                 'current_page' => $results->currentPage(),
                 'last_page' => $results->lastPage(),
@@ -86,15 +90,19 @@ class DirectoryController extends Controller
             return response()->json(['message' => 'Officer not found.'], 404);
         }
 
-        return response()->json(['data' => $this->officerCard($user)]);
+        return response()->json(['data' => $this->officerCard($user, $request->user())]);
     }
 
     /**
      * @return array<string, mixed>
      */
-    private function officerCard(User $user): array
+    private function officerCard(User $user, User $viewer): array
     {
         $p = $user->personnelRecord;
+
+        // Presence / last-seen respect the target officer's privacy settings.
+        $presenceVisible = $this->privacy->isVisible($user, $viewer, 'online');
+        $lastSeenVisible = $this->privacy->isVisible($user, $viewer, 'last_seen');
 
         return [
             'id' => $user->id,
@@ -108,7 +116,8 @@ class DirectoryController extends Controller
             'command' => $p?->command,
             'formation' => $p?->formation,
             'unit' => $p?->unit,
-            'presence' => $user->presence,
+            'presence' => $presenceVisible ? $user->presence : null,
+            'last_seen_at' => $lastSeenVisible ? $user->last_seen_at : null,
         ];
     }
 }

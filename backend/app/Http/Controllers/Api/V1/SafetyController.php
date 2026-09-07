@@ -13,6 +13,16 @@ class SafetyController extends Controller
 {
     public function __construct(private readonly AuditLogger $audit) {}
 
+    public function blocked(Request $request): JsonResponse
+    {
+        $blocked = BlockedUser::where('blocker_id', $request->user()->id)
+            ->join('users', 'users.id', '=', 'blocked_users.blocked_id')
+            ->orderBy('users.display_name')
+            ->get(['users.id', 'users.service_number', 'users.display_name']);
+
+        return response()->json(['data' => $blocked]);
+    }
+
     public function block(Request $request): JsonResponse
     {
         $data = $request->validate(['user_id' => ['required', 'uuid', 'exists:users,id']]);

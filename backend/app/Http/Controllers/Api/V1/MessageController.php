@@ -92,6 +92,32 @@ class MessageController extends Controller
         return response()->json(['message' => 'Reaction added.']);
     }
 
+    public function update(Request $request, Message $message): JsonResponse
+    {
+        $data = $request->validate(['body' => ['required', 'string', 'max:8000']]);
+        $updated = $this->messages->edit($request->user(), $message, $data['body']);
+
+        return (new MessageResource($updated))->response();
+    }
+
+    public function pin(Request $request, Message $message): JsonResponse
+    {
+        abort_unless($message->conversation->hasMember($request->user()->id), 403);
+        $data = $request->validate(['pinned' => ['required', 'boolean']]);
+        $this->messages->setPinned($message, $data['pinned']);
+
+        return response()->json(['message' => $data['pinned'] ? 'Pinned.' : 'Unpinned.']);
+    }
+
+    public function forward(Request $request, Message $message): JsonResponse
+    {
+        $data = $request->validate(['conversation_id' => ['required', 'uuid']]);
+        $target = Conversation::findOrFail($data['conversation_id']);
+        $new = $this->messages->forward($request->user(), $message, $target);
+
+        return (new MessageResource($new))->response()->setStatusCode(201);
+    }
+
     public function destroy(Request $request, Message $message): JsonResponse
     {
         abort_unless($message->sender_id === $request->user()->id, 403);

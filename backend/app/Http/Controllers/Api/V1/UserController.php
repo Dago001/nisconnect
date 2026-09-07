@@ -25,6 +25,17 @@ class UserController extends Controller
         return new UserResource($request->user()->fresh()->load('personnelRecord'));
     }
 
+    public function updatePresence(Request $request): JsonResponse
+    {
+        $data = $request->validate(['presence' => ['required', 'in:online,offline,away']]);
+        $request->user()->update([
+            'presence' => $data['presence'],
+            'last_seen_at' => now(),
+        ]);
+
+        return response()->json(['presence' => $data['presence']]);
+    }
+
     public function updatePrivacy(Request $request): JsonResponse
     {
         $allowed = array_keys(User::defaultPrivacy());

@@ -148,6 +148,59 @@ class MessageService
     }
 
     /**
+     * Edit a text message the user authored. Records an edit timestamp.
+     */
+    public function edit(User $user, Message $message, string $body): Message
+    {
+        if ($message->sender_id !== $user->id) {
+            throw ValidationException::withMessages(['message' => 'You can only edit your own messages.']);
+        }
+        if ($message->type !== 'text') {
+            throw ValidationException::withMessages(['message' => 'Only text messages can be edited.']);
+        }
+
+        $message->update(['body' => $body, 'edited_at' => Carbon::now()]);
+        broadcast(new MessageCreated($message->fresh()))->toOthers();
+
+        return $message->fresh();
+    }
+
+    /**
+     * Pin or unpin a message. Any member of the conversation may pin.
+     */
+    public function setPinned(Message $message, bool $pinned): Message
+    {
+        $message->update(['pinned_at' => $pinned ? Carbon::now() : null]);
+
+        return $message->fresh();
+    }
+
+    /**
+     * Forward an existing message into another conversation the user belongs to.
+     */
+    public function forward(User $user, Message $source, Conversation $target): Message
+    {
+        if (! $target->hasMember($user->id)) {
+            throw ValidationException::withMessages(['conversation' => 'You are not a member of the target conversation.']);
+        }
+        // The user must be able to see the source (member of its conversation).
+        if (! $source->conversation->hasMember($user->id)) {
+            throw ValidationException::withMessages(['message' => 'You cannot forward this message.']);
+        }
+
+        $message = $this->send(
+            $user,
+            $target,
+            $source->type,
+            $source->body,
+            attachmentMediaIds: $source->attachments->pluck('media_file_id')->all(),
+        );
+        $message->update(['forwarded_from_id' => $source->id]);
+
+        return $message->fresh();
+    }
+
+    /**
      * Mark a message (and everything before it) read by a user.
      */
     public function markRead(User $user, Message $message): void
