@@ -23,7 +23,8 @@ with no internal detail. Onboarding, OTP, login and directory routes are rate li
 | POST | `/auth/logout` | Revokes current token. |
 | GET | `/users/me` | Current officer + personnel fields. |
 | PATCH | `/users/me` | Update display name. |
-| PUT | `/users/me/privacy` | Per-key `everyone|contacts|nobody`. |
+| PUT | `/users/me/privacy` | Per-key `everyone|contacts|nobody` (enforced server-side). |
+| PUT | `/users/me/presence` `{presence}` | Set online/offline/away + last-seen. |
 
 ## Directory (bearer, rate limited)
 | GET | `/directory/search?q=&directorate=&department=&command=&rank=&per_page=` | At least one filter required; capped results. |
@@ -37,6 +38,9 @@ with no internal detail. Onboarding, OTP, login and directory routes are rate li
 | POST | `/chats/{conversation}/messages` `{type,body,reply_to_id?,attachments[]}` | Send. |
 | POST | `/chats/{conversation}/typing` | Broadcast typing. |
 | GET | `/messages/search?q=&conversation_id?&type?` | Full-text search (GIN index) scoped to the user's conversations. |
+| PATCH | `/messages/{message}` `{body}` | Edit own text message (sets `edited_at`). |
+| POST | `/messages/{message}/pin` `{pinned}` | Pin/unpin (members). |
+| POST | `/messages/{message}/forward` `{conversation_id}` | Forward to another conversation. |
 | POST | `/messages/{message}/read` | Read receipt. |
 | POST | `/messages/{message}/react` `{emoji}` | React. |
 | DELETE | `/messages/{message}` | Delete own message. |
@@ -65,6 +69,7 @@ with no internal detail. Onboarding, OTP, login and directory routes are rate li
 | POST | `/channels/{channel}/subscribe` | Subscribe. |
 
 ## Safety (bearer)
+| GET | `/safety/blocked` | List blocked officers. |
 | POST | `/safety/block` `{user_id}` · `/safety/unblock` `{user_id}` | Block / unblock. |
 | POST | `/safety/report` `{target_type,target_id,reason,details?}` | File a report. |
 

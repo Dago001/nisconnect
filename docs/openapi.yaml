@@ -259,6 +259,12 @@ paths:
       tags: [Users]
       summary: Update privacy settings
       responses: { "200": { description: OK } }
+  /users/me/presence:
+    put:
+      tags: [Users]
+      summary: Update presence (online/offline/away)
+      requestBody: { required: true, content: { application/json: { schema: { type: object, required: [presence], properties: { presence: { type: string, enum: [online, offline, away] } } } } } }
+      responses: { "200": { description: OK } }
 
   /directory/search:
     get:
@@ -345,7 +351,25 @@ paths:
       requestBody: { required: true, content: { application/json: { schema: { type: object, required: [emoji], properties: { emoji: { type: string } } } } } }
       responses: { "200": { description: OK } }
   /messages/{message}:
+    patch:
+      tags: [Messages]
+      summary: Edit own text message
+      parameters: [{ name: message, in: path, required: true, schema: { type: string, format: uuid } }]
+      requestBody: { required: true, content: { application/json: { schema: { type: object, required: [body], properties: { body: { type: string } } } } } }
+      responses: { "200": { description: OK }, "422": { description: Not sender / not text } }
     delete: { tags: [Messages], parameters: [{ name: message, in: path, required: true, schema: { type: string, format: uuid } }], responses: { "200": { description: OK }, "403": { description: Not the sender } } }
+  /messages/{message}/pin:
+    post:
+      tags: [Messages]
+      parameters: [{ name: message, in: path, required: true, schema: { type: string, format: uuid } }]
+      requestBody: { required: true, content: { application/json: { schema: { type: object, required: [pinned], properties: { pinned: { type: boolean } } } } } }
+      responses: { "200": { description: OK }, "403": { description: Not a member } }
+  /messages/{message}/forward:
+    post:
+      tags: [Messages]
+      parameters: [{ name: message, in: path, required: true, schema: { type: string, format: uuid } }]
+      requestBody: { required: true, content: { application/json: { schema: { type: object, required: [conversation_id], properties: { conversation_id: { type: string, format: uuid } } } } } }
+      responses: { "201": { description: Forwarded }, "422": { description: Not a member of source/target } }
 
   /groups:
     get: { tags: [Groups], responses: { "200": { description: OK } } }
@@ -441,6 +465,8 @@ paths:
   /channels/{channel}/subscribe:
     post: { tags: [Channels], parameters: [{ name: channel, in: path, required: true, schema: { type: string, format: uuid } }], responses: { "200": { description: OK } } }
 
+  /safety/blocked:
+    get: { tags: [Safety], summary: List blocked officers, responses: { "200": { description: OK } } }
   /safety/block:
     post: { tags: [Safety], requestBody: { required: true, content: { application/json: { schema: { type: object, required: [user_id], properties: { user_id: { type: string, format: uuid } } } } } }, responses: { "200": { description: OK } } }
   /safety/unblock:

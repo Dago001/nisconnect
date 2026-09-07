@@ -37,7 +37,7 @@ nisconnect/
 | [docs/SECURITY.md](docs/SECURITY.md) | Threat model, auth, OTP, RBAC + org scoping, message security (what is/ isn't encrypted), audit, recovery |
 | [docs/PERSONNEL_INTEGRATION.md](docs/PERSONNEL_INTEGRATION.md) | Personnel provider interface, demo/api/database adapters, Service Number rules |
 | [docs/DESIGN_SYSTEM.md](docs/DESIGN_SYSTEM.md) | Green colour system, Arial typography, components, dark mode, accessibility |
-| [docs/API.md](docs/API.md) · [docs/openapi.yaml](docs/openapi.yaml) | Full v1 endpoint reference + OpenAPI 3.0 spec (48 paths) |
+| [docs/API.md](docs/API.md) · [docs/openapi.yaml](docs/openapi.yaml) | Full v1 endpoint reference + OpenAPI 3.0 spec (52 paths) |
 | [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) | Docker stack, production checklist, backups, RPO/RTO, CI/CD |
 
 ## What is implemented and tested (backend)
@@ -58,7 +58,7 @@ nisconnect/
   user search, suspend/reactivate, revoke devices — all audited. At `/admin/login`.
 - **Docker stack** (`infrastructure/`): Nginx, PHP-FPM, PostgreSQL, Redis, Reverb
   (WebSockets), queue worker, MinIO, LiveKit; plus GitHub Actions CI.
-- **62 passing tests** (feature + unit) against PostgreSQL.
+- **78 passing tests** (feature + unit) against PostgreSQL.
 
 Also implemented and tested: **private & group messaging** (realtime events, read
 receipts, reactions, blocking), **media sharing** (private disk, signed download,
