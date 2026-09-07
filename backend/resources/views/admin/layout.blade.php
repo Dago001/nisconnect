@@ -37,6 +37,10 @@
         <nav>
             <a href="{{ route('admin.dashboard') }}">Dashboard</a>
             <a href="{{ route('admin.users') }}">Users</a>
+            <a href="{{ route('admin.org') }}">Organisation</a>
+            <a href="{{ route('admin.reports') }}">Reports</a>
+            <a href="{{ route('admin.audit') }}">Audit</a>
+            <a href="{{ route('admin.security') }}">Security</a>
         </nav>
         <form method="POST" action="{{ route('admin.logout') }}" style="margin-left:auto;">
             @csrf <button class="btn grey" type="submit">Sign out</button>
