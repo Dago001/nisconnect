@@ -6,9 +6,25 @@ on:
     paths: ["mobile/**", ".github/workflows/mobile.yml"]
   pull_request:
     paths: ["mobile/**", ".github/workflows/mobile.yml"]
+  # Manual run (Actions tab > Mobile & Web CI > Run workflow) to build an APK
+  # and website that talk to a hosted backend instead of the local dev host.
+  workflow_dispatch:
+    inputs:
+      api_base_url:
+        description: "API base URL, e.g. https://nisconnect.example.gov.ng/api/v1"
+        required: false
+        default: ""
+      ws_host:
+        description: "Reverb websocket host, e.g. nisconnect.example.gov.ng"
+        required: false
+        default: ""
 
 env:
   FLUTTER_VERSION: "3.47.6"
+  # Empty on push/PR builds, so the app falls back to the local dev host.
+  BACKEND_DEFINES: >-
+    ${{ inputs.api_base_url && format('--dart-define=API_BASE_URL={0}', inputs.api_base_url) || '' }}
+    ${{ inputs.ws_host && format('--dart-define=WS_HOST={0} --dart-define=WS_SCHEME=wss --dart-define=WS_PORT=443', inputs.ws_host) || '' }}
 
 defaults:
   run:
@@ -38,7 +54,7 @@ jobs:
       - run: flutter pub get
       # CanvasKit is bundled instead of fetched from Google's CDN, so the site
       # works on networks that block gstatic.com.
-      - run: flutter build web --release --no-web-resources-cdn
+      - run: flutter build web --release --no-web-resources-cdn $BACKEND_DEFINES
       - uses: actions/upload-artifact@v4
         with:
           name: nisconnect-web
@@ -57,7 +73,7 @@ jobs:
           flutter-version: ${{ env.FLUTTER_VERSION }}
           cache: true
       - run: flutter pub get
-      - run: flutter build apk --release
+      - run: flutter build apk --release $BACKEND_DEFINES
       - uses: actions/upload-artifact@v4
         with:
           name: nisconnect-android-apk
