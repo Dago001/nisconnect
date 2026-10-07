@@ -72,6 +72,8 @@ jobs:
           flutter-version: ${{ env.FLUTTER_VERSION }}
           cache: true
       - run: flutter pub get
-      # Unsigned build: proves the iOS project compiles. Signing for devices /
-      # TestFlight needs an Apple Developer team (see mobile/README.md).
-      - run: flutter build ios --release --no-codesign
+      # Simulator build: proves the iOS project and all native plugins compile
+      # without a signing team. Device / TestFlight builds need an Apple
+      # Developer team set in Xcode (see mobile/README.md); with none, even
+      # `--no-codesign` device builds fail on the Swift-package resource bundles.
+      - run: flutter build ios --simulator --debug
