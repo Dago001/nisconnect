@@ -62,6 +62,8 @@ jobs:
 
   android:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-java@v4
@@ -78,6 +80,19 @@ jobs:
         with:
           name: nisconnect-android-apk
           path: mobile/build/app/outputs/flutter-apk/app-release.apk
+      # Installable APK for testers: a GitHub pre-release always holds the
+      # latest build (Releases > "NISconnect Android preview"). Not on PRs, so
+      # forks can't overwrite it.
+      - name: Publish preview APK
+        if: github.event_name != 'pull_request'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          cp build/app/outputs/flutter-apk/app-release.apk nisconnect.apk
+          gh release delete android-preview --yes --cleanup-tag || true
+          gh release create android-preview nisconnect.apk --prerelease \
+            --target "$GITHUB_SHA" --title "NISconnect Android preview" \
+            --notes "Test build from ${GITHUB_REF_NAME} @ ${GITHUB_SHA::7}. Signed with a debug key; for testing only."
 
   ios:
     runs-on: macos-latest
