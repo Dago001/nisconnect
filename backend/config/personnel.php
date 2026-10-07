@@ -20,7 +20,9 @@ return [
     | Leave 'length' null to use the min/max range.
     */
     'service_number' => [
-        'length' => env('PERSONNEL_SERVICE_NUMBER_LENGTH') !== null
+        // filled(): an empty `PERSONNEL_SERVICE_NUMBER_LENGTH=` (as shipped in
+        // .env.example) means "use the range", not "exactly 0 digits".
+        'length' => filled(env('PERSONNEL_SERVICE_NUMBER_LENGTH'))
             ? (int) env('PERSONNEL_SERVICE_NUMBER_LENGTH')
             : null,
         'min' => (int) env('PERSONNEL_SERVICE_NUMBER_MIN', 4),

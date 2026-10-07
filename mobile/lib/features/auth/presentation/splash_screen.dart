@@ -42,6 +42,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
         return;
       }
     }
+    if (!mounted) return;
     context.go('/home');
   }
 

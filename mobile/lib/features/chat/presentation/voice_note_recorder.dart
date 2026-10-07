@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:io';
 
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:record/record.dart';
 
@@ -9,7 +10,8 @@ import '../../../core/theme/app_typography.dart';
 
 /// Press-and-hold voice note recorder. Reports the recorded file path and
 /// duration on completion; cancels cleanly if the user aborts. Microphone
-/// permission is requested by the `record` package.
+/// permission is requested by the `record` package. In the browser the
+/// recording is kept in memory and reported as a blob URL instead of a path.
 class VoiceNoteRecorder extends StatefulWidget {
   const VoiceNoteRecorder({super.key, required this.onRecorded});
 
@@ -28,9 +30,14 @@ class _VoiceNoteRecorderState extends State<VoiceNoteRecorder> {
 
   Future<void> _start() async {
     if (!await _recorder.hasPermission()) return;
-    final dir = DateTime.now().millisecondsSinceEpoch;
-    final path = '${Directory.systemTemp.path}/vn_$dir.m4a';
-    await _recorder.start(const RecordConfig(encoder: AudioEncoder.aacLc), path: path);
+    final stamp = DateTime.now().millisecondsSinceEpoch;
+    if (kIsWeb) {
+      // Browsers record Opus/WebM; the path argument is ignored.
+      await _recorder.start(const RecordConfig(encoder: AudioEncoder.opus), path: '');
+    } else {
+      final path = '${Directory.systemTemp.path}/vn_$stamp.m4a';
+      await _recorder.start(const RecordConfig(encoder: AudioEncoder.aacLc), path: path);
+    }
     setState(() {
       _recording = true;
       _elapsed = Duration.zero;
