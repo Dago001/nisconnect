@@ -38,9 +38,26 @@ class _DirectoryScreenState extends ConsumerState<DirectoryScreen> {
     }
   }
 
+  String? _starting;
+
   Future<void> _startChat(String serviceNumber) async {
-    final chat = await ref.read(chatRepositoryProvider).startChat(serviceNumber);
-    if (mounted) context.go('/home/chat/${chat.id}');
+    if (_starting != null) return;
+    setState(() => _starting = serviceNumber);
+    try {
+      final chat = await ref.read(chatRepositoryProvider).startChat(serviceNumber);
+      if (!mounted) return;
+      ref.invalidate(chatsProvider);
+      await context.push('/home/chat/${chat.id}');
+      ref.invalidate(chatsProvider);
+    } on ApiException catch (e) {
+      if (!mounted) return;
+      final text = e.statusCode == 404
+          ? "This officer hasn't signed up to NISconnect yet, so you can't message them."
+          : e.message;
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(text)));
+    } finally {
+      if (mounted) setState(() => _starting = null);
+    }
   }
 
   @override
@@ -83,10 +100,15 @@ class _DirectoryScreenState extends ConsumerState<DirectoryScreen> {
                     style: AppTypography.caption,
                   ),
                   isThreeLine: true,
-                  trailing: IconButton(
-                    icon: const Icon(Icons.chat_bubble_outline, color: AppColors.primaryGreen),
-                    onPressed: () => _startChat(o['service_number'] as String),
-                  ),
+                  trailing: _starting == o['service_number']
+                      ? const SizedBox(
+                          width: 24, height: 24, child: CircularProgressIndicator(strokeWidth: 2))
+                      : IconButton(
+                          tooltip: 'Message',
+                          icon: const Icon(Icons.chat_bubble_outline, color: AppColors.primaryGreen),
+                          onPressed: () => _startChat(o['service_number'] as String),
+                        ),
+                  onTap: () => _startChat(o['service_number'] as String),
                 );
               },
             ),

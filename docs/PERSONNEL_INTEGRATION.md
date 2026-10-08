@@ -34,6 +34,7 @@ controlled by `config/personnel.php` → `fields`.
 ```
 # backend/.env
 PERSONNEL_PROVIDER=demo        # demo | api | database
+PERSONNEL_DEMO_ACCEPT_ANY=false  # demo only: treat unknown numbers as active test officers (never in production)
 PERSONNEL_SERVICE_NUMBER_LENGTH=          # empty = any length; or fixed e.g. 6
 PERSONNEL_SERVICE_NUMBER_MIN=4
 PERSONNEL_SERVICE_NUMBER_MAX=12

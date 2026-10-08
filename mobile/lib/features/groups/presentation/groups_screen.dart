@@ -1,11 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../../core/network/api_client.dart';
+import '../../../core/session/session.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_typography.dart';
 
 final groupsProvider = FutureProvider<List<Map<String, dynamic>>>((ref) async {
+  if (ref.watch(sessionServiceNumberProvider) == null) return const [];
   final res = await ref.watch(apiClientProvider).get('/groups');
   return ((res.data as Map<String, dynamic>)['data'] as List<dynamic>).cast<Map<String, dynamic>>();
 });
@@ -35,6 +38,10 @@ class GroupsScreen extends ConsumerWidget {
                   ),
                   title: Text(items[i]['name'] as String? ?? '', style: AppTypography.title),
                   subtitle: Text(items[i]['description'] as String? ?? '', style: AppTypography.caption),
+                  trailing: const Icon(Icons.chevron_right),
+                  onTap: items[i]['conversation_id'] == null
+                      ? null
+                      : () => context.push('/home/chat/${items[i]['conversation_id']}'),
                 ),
               ),
       ),

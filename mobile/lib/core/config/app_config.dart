@@ -10,6 +10,9 @@ class AppConfig {
 
   /// Server root set by the user at runtime, e.g. `https://nisconnect.onrender.com`.
   /// Loaded from secure storage before the app starts.
+  /// Shown in About; keep in step with `version:` in pubspec.yaml.
+  static const String appVersion = '1.0.0';
+
   static String? serverOverride;
 
   /// The development machine as seen from the client: the Android emulator

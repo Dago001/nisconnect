@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/network/api_client.dart';
+import '../../../core/session/session.dart';
 import '../../../core/storage/secure_storage.dart';
 import '../domain/personnel_record.dart';
 
@@ -60,8 +61,9 @@ class AuthRepository {
     });
     final body = res.data as Map<String, dynamic>;
     await _storage.saveToken(body['access_token'] as String);
-    await _storage.saveServiceNumber(
-        (body['user'] as Map<String, dynamic>)['service_number'] as String);
+    final serviceNumber = (body['user'] as Map<String, dynamic>)['service_number'] as String;
+    await _storage.saveServiceNumber(serviceNumber);
+    currentServiceNumber.value = serviceNumber;
   }
 
   Future<void> login({
@@ -74,12 +76,19 @@ class AuthRepository {
     final body = res.data as Map<String, dynamic>;
     await _storage.saveToken(body['access_token'] as String);
     await _storage.saveServiceNumber(serviceNumber);
+    currentServiceNumber.value = serviceNumber;
+  }
+
+  /// Changes the sign-in PIN. Throws [ApiException] (422) on a wrong current PIN.
+  Future<void> changePin(String currentPin, String newPin) async {
+    await _api.put('/users/me/pin', data: {'current_pin': currentPin, 'new_pin': newPin});
   }
 
   Future<void> logout() async {
     try {
       await _api.post('/auth/logout');
     } finally {
+      currentServiceNumber.value = null;
       await _storage.clearAll();
     }
   }

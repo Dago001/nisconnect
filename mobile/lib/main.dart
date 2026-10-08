@@ -6,6 +6,7 @@ import 'core/router/app_router.dart';
 import 'core/storage/secure_storage.dart';
 import 'core/theme/app_colors.dart';
 import 'core/theme/app_theme.dart';
+import 'shared/widgets/service_number_watermark.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -29,7 +30,9 @@ class NISconnectApp extends StatelessWidget {
       darkTheme: AppTheme.dark,
       themeMode: ThemeMode.system, // Light / Dark / System
       routerConfig: appRouter,
-      builder: (context, child) => _ResponsiveFrame(child: child!),
+      builder: (context, child) => _ResponsiveFrame(
+        child: ServiceNumberWatermark(child: child!),
+      ),
     );
   }
 }

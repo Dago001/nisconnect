@@ -254,6 +254,12 @@ paths:
   /users/me:
     get: { tags: [Users], summary: Current officer, responses: { "200": { description: OK } } }
     patch: { tags: [Users], summary: Update display name, responses: { "200": { description: OK } } }
+  /users/me/pin:
+    put:
+      tags: [Users]
+      summary: Change sign-in PIN
+      requestBody: { required: true, content: { application/json: { schema: { type: object, required: [current_pin, new_pin], properties: { current_pin: { type: string }, new_pin: { type: string, pattern: '^[0-9]{4,12}$' } } } } } }
+      responses: { "200": { description: PIN changed }, "422": { description: Wrong current PIN or invalid new PIN } }
   /users/me/privacy:
     put:
       tags: [Users]
