@@ -124,6 +124,10 @@ Both commands must print a version (Docker Compose v2.24 or newer).
 
 ### 7. Download NISconnect
 
+> **Before you start:** the go-live code is in pull request #1 on GitHub. Merge it first
+> (open the pull request, click **Merge**). The commands below then download the merged
+> code. Until it is merged, add `-b claude/web-ios-android-targets` after `git clone`.
+
 ```bash
 mkdir -p /opt && cd /opt
 git clone https://github.com/Dago001/nisconnect.git
