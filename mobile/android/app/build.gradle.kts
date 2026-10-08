@@ -1,3 +1,4 @@
+import java.util.Base64
 import java.util.Properties
 
 plugins {
@@ -25,7 +26,7 @@ val releaseKeystore: File? = when {
     !System.getenv("ANDROID_KEYSTORE_BASE64").isNullOrBlank() ->
         layout.buildDirectory.file("signing/release.jks").get().asFile.apply {
             parentFile.mkdirs()
-            writeBytes(java.util.Base64.getMimeDecoder().decode(System.getenv("ANDROID_KEYSTORE_BASE64").trim()))
+            writeBytes(Base64.getMimeDecoder().decode(System.getenv("ANDROID_KEYSTORE_BASE64").trim()))
         }
     else -> null
 }
