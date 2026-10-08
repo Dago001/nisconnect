@@ -13,6 +13,7 @@ use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Contracts\Foundation\Application;
 use Illuminate\Http\Client\Factory as HttpFactory;
 use Illuminate\Http\Request;
+use Illuminate\Pagination\Paginator;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
 
@@ -51,6 +52,12 @@ class AppServiceProvider extends ServiceProvider
         RateLimiter::for('verify', fn (Request $r) => Limit::perMinute(8)->by($r->ip()));
         RateLimiter::for('otp', fn (Request $r) => Limit::perMinute(6)->by($r->ip()));
         RateLimiter::for('login', fn (Request $r) => Limit::perMinute(10)->by($r->ip()));
+        // Admin portal: per IP + Service Number, so one attacker can't lock out others.
+        RateLimiter::for('admin-login', fn (Request $r) => [
+            Limit::perMinute(10)->by('ip:'.$r->ip()),
+            Limit::perMinutes(15, 5)->by('sn:'.$r->input('service_number').'|'.$r->ip()),
+        ]);
+        Paginator::defaultView('admin.partials.pagination');
         RateLimiter::for('directory', fn (Request $r) => Limit::perMinute(30)
             ->by(optional($r->user())->id ?: $r->ip()));
     }

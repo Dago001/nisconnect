@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Models\Concerns\HasUuidPrimaryKey;
+use App\Support\AdminPermissions;
 use Illuminate\Contracts\Auth\Authenticatable as AuthenticatableContract;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -34,7 +35,11 @@ class User extends Authenticatable implements AuthenticatableContract
 
     protected $hidden = [
         'password_hash', 'pin_hash', 'remember_token',
+        'two_factor_secret', 'two_factor_recovery_codes',
     ];
+
+    /** @var list<string>|null Per-instance cache of permission names. */
+    private ?array $permissionCache = null;
 
     protected function casts(): array
     {
@@ -43,6 +48,12 @@ class User extends Authenticatable implements AuthenticatableContract
             'phone_verified_at' => 'datetime',
             'last_seen_at' => 'datetime',
             'privacy' => 'array',
+            'two_factor_secret' => 'encrypted',
+            'two_factor_recovery_codes' => 'encrypted:array',
+            'two_factor_confirmed_at' => 'datetime',
+            'password_changed_at' => 'datetime',
+            'must_change_password' => 'boolean',
+            'last_admin_login_at' => 'datetime',
         ];
     }
 
@@ -113,6 +124,54 @@ class User extends Authenticatable implements AuthenticatableContract
     public function sentMessages(): HasMany
     {
         return $this->hasMany(Message::class, 'sender_id');
+    }
+
+    public function isSuperAdmin(): bool
+    {
+        return $this->hasRole('super_admin');
+    }
+
+    /**
+     * Names of every permission granted through the user's roles. Super
+     * administrators hold every permission.
+     *
+     * @return list<string>
+     */
+    public function permissionNames(): array
+    {
+        if ($this->permissionCache !== null) {
+            return $this->permissionCache;
+        }
+
+        $roleNames = $this->roles()->with('role.permissions')->get()->pluck('role');
+        if ($roleNames->contains(fn ($r) => $r?->name === 'super_admin')) {
+            return $this->permissionCache = array_keys(AdminPermissions::all());
+        }
+
+        return $this->permissionCache = $roleNames->filter()
+            ->flatMap(fn ($r) => $r->permissions->pluck('name'))
+            ->unique()->values()->all();
+    }
+
+    public function hasPermission(string $permission): bool
+    {
+        return in_array($permission, $this->permissionNames(), true);
+    }
+
+    public function canAccessAdminPortal(): bool
+    {
+        return $this->isActive() && $this->hasPermission('dashboard.view');
+    }
+
+    public function hasTwoFactorEnabled(): bool
+    {
+        return $this->two_factor_secret !== null && $this->two_factor_confirmed_at !== null;
+    }
+
+    /** Clears the cached permissions after role changes. */
+    public function flushPermissionCache(): void
+    {
+        $this->permissionCache = null;
     }
 
     /**

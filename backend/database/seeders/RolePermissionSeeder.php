@@ -4,57 +4,48 @@ namespace Database\Seeders;
 
 use App\Models\Permission;
 use App\Models\Role;
+use App\Support\AdminPermissions;
 use Illuminate\Database\Seeder;
 
+/**
+ * Idempotent: safe to re-run on every deploy. Creates roles and the permission
+ * catalogue. Default grants are applied only to roles that have none yet, so
+ * changes made in the portal's permission matrix are preserved.
+ */
 class RolePermissionSeeder extends Seeder
 {
     public function run(): void
     {
         $roles = [
-            ['name' => 'super_admin', 'label' => 'Super Administrator', 'scope_type' => null],
-            ['name' => 'nis_admin', 'label' => 'NIS Administrator', 'scope_type' => null],
-            ['name' => 'directorate_admin', 'label' => 'Directorate Administrator', 'scope_type' => 'directorate'],
-            ['name' => 'group_admin', 'label' => 'Group Administrator', 'scope_type' => 'group'],
-            ['name' => 'security_admin', 'label' => 'Security Administrator', 'scope_type' => null],
-            ['name' => 'officer', 'label' => 'Standard Officer', 'scope_type' => null],
+            ['name' => 'super_admin', 'label' => 'Super Administrator', 'scope_type' => null,
+                'description' => 'Full control of NISconnect, including access control and system settings.'],
+            ['name' => 'nis_admin', 'label' => 'NIS Administrator', 'scope_type' => null,
+                'description' => 'Day-to-day administration of officers, personnel, groups and channels.'],
+            ['name' => 'security_admin', 'label' => 'Security Administrator', 'scope_type' => null,
+                'description' => 'Security monitoring, audit review, device control and moderation.'],
+            ['name' => 'directorate_admin', 'label' => 'Directorate Administrator', 'scope_type' => 'directorate',
+                'description' => 'Communication and groups for a directorate.'],
+            ['name' => 'group_admin', 'label' => 'Group Administrator', 'scope_type' => 'group',
+                'description' => 'Manages groups.'],
+            ['name' => 'officer', 'label' => 'Standard Officer', 'scope_type' => null,
+                'description' => 'Every registered officer.'],
         ];
 
         foreach ($roles as $role) {
             Role::updateOrCreate(['name' => $role['name']], $role);
         }
 
-        $permissions = [
-            ['name' => 'users.view', 'group' => 'users'],
-            ['name' => 'users.suspend', 'group' => 'users'],
-            ['name' => 'users.reactivate', 'group' => 'users'],
-            ['name' => 'devices.revoke', 'group' => 'devices'],
-            ['name' => 'groups.manage', 'group' => 'groups'],
-            ['name' => 'channels.manage', 'group' => 'channels'],
-            ['name' => 'reports.review', 'group' => 'safety'],
-            ['name' => 'audit.view', 'group' => 'security'],
-            ['name' => 'security.view', 'group' => 'security'],
-            ['name' => 'messages.send', 'group' => 'messaging'],
-        ];
-
-        foreach ($permissions as $perm) {
-            Permission::updateOrCreate(['name' => $perm['name']], [
-                'label' => ucwords(str_replace(['.', '_'], ' ', $perm['name'])),
-                'group' => $perm['group'],
-            ]);
+        foreach (AdminPermissions::all() as $name => [$label, $group]) {
+            Permission::updateOrCreate(['name' => $name], ['label' => $label, 'group' => $group]);
         }
+        // Drop permissions no longer in the catalogue.
+        Permission::whereNotIn('name', array_keys(AdminPermissions::all()))->delete();
 
-        // Super admin gets everything.
-        $superAdmin = Role::where('name', 'super_admin')->first();
-        $superAdmin->permissions()->sync(Permission::pluck('id'));
-
-        // Officer gets baseline messaging.
-        $officer = Role::where('name', 'officer')->first();
-        $officer->permissions()->sync(Permission::whereIn('name', ['messages.send', 'users.view'])->pluck('id'));
-
-        // Security admin gets audit/security.
-        $security = Role::where('name', 'security_admin')->first();
-        $security->permissions()->sync(
-            Permission::whereIn('name', ['audit.view', 'security.view', 'devices.revoke', 'users.view'])->pluck('id')
-        );
+        foreach (AdminPermissions::defaults() as $roleName => $perms) {
+            $role = Role::where('name', $roleName)->first();
+            if ($roleName === 'super_admin' || ! $role->permissions()->exists()) {
+                $role->permissions()->sync(Permission::whereIn('name', $perms)->pluck('id'));
+            }
+        }
     }
 }
