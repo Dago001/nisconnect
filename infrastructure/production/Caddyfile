@@ -1,0 +1,72 @@
+# NISconnect public entry point (Caddy 2). Baked into the caddy image by
+# web.Dockerfile. APP_DOMAIN and ACME_EMAIL come from the container
+# environment (infrastructure/production/.env).
+#
+# Routing on https://{$APP_DOMAIN}:
+#   /app/*  /apps/*                         -> reverb:8080 (websockets, Pusher protocol)
+#   /api/*  /admin  /admin/*  /broadcasting/*
+#   /sanctum/*  /portal-assets/*  /up
+#   /robots.txt                             -> app:8080 (Laravel API + admin portal;
+#                                              /portal-assets/* are the portal's images
+#                                              in backend/public/portal-assets)
+#   everything else                         -> Flutter web app in /srv/web,
+#                                              unknown paths fall back to index.html
+#
+# Certificates are obtained and renewed automatically from Let's Encrypt;
+# http:// is redirected to https:// automatically.
+
+{
+	email {$ACME_EMAIL}
+}
+
+{$APP_DOMAIN} {
+	encode zstd gzip
+
+	# Media uploads are capped at 50 MB by the API.
+	request_body {
+		max_size 64MB
+	}
+
+	# Baseline security headers. "?" = only when the response does not already
+	# set the header, so the admin portal's stricter policy (CSP, no-store,
+	# camera/microphone off) from Laravel wins.
+	header {
+		?Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		?X-Content-Type-Options "nosniff"
+		?X-Frame-Options "DENY"
+		?Referrer-Policy "strict-origin-when-cross-origin"
+		?Permissions-Policy "camera=(self), microphone=(self), geolocation=(), payment=()"
+		?Cross-Origin-Opener-Policy "same-origin"
+		-Server
+		-X-Powered-By
+	}
+
+	# Websockets (Laravel Reverb). Caddy upgrades the connection automatically.
+	@reverb path /app/* /apps/*
+	handle @reverb {
+		reverse_proxy reverb:8080
+	}
+
+	# Laravel. These paths must win over the web app, so they are matched first.
+	@laravel path /api/* /admin /admin/* /broadcasting/* /sanctum/* /portal-assets/* /up /robots.txt
+	handle @laravel {
+		# Caddy sends X-Forwarded-For/-Proto/-Host; Laravel trusts them from
+		# the internal network via TRUSTED_PROXIES.
+		reverse_proxy app:8080
+	}
+
+	# The Flutter web app (single-page app).
+	handle {
+		root * /srv/web
+		# File names are not content-hashed, so make browsers revalidate
+		# (cheap: Caddy answers 304 Not Modified via ETag) to pick up new releases.
+		header Cache-Control "no-cache"
+		try_files {path} /index.html
+		file_server
+	}
+
+	log {
+		output stdout
+		format console
+	}
+}

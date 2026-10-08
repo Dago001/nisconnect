@@ -37,3 +37,15 @@ node_modules/
 # Docker / local data
 infrastructure/data/
 *.log
+
+# Production stack (infrastructure/production): secrets, prebuilt web app, backups
+infrastructure/production/web/*
+!infrastructure/production/web/.gitkeep
+infrastructure/production/backups/
+
+# Android release signing — never commit keystores or their passwords
+mobile/android/key.properties
+**/*.jks
+**/*.keystore
+*.p12
+*.mobileprovision

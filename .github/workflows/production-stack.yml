@@ -1,0 +1,83 @@
+name: Production stack
+
+# Boots the real production stack (infrastructure/production) on the runner,
+# exactly as docs/GO_LIVE.md tells you to on a server, and checks it end to
+# end through Caddy over HTTPS: web app, API, admin portal, websockets.
+on:
+  push:
+    branches: ["**"]
+    paths: ["infrastructure/production/**", "backend/**", "mobile/**", ".github/workflows/production-stack.yml"]
+  pull_request:
+    paths: ["infrastructure/production/**", "backend/**", "mobile/**", ".github/workflows/production-stack.yml"]
+  workflow_dispatch:
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    defaults:
+      run:
+        working-directory: infrastructure/production
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Write a test .env (localhost, Caddy's internal certificate)
+        run: |
+          cp .env.example .env
+          set_env() { if grep -q "^$1=" .env; then sed -i "s|^$1=.*|$1=$2|" .env; else echo "$1=$2" >> .env; fi; }
+          set_env APP_DOMAIN localhost
+          set_env ACME_EMAIL ci@example.com
+          set_env APP_KEY "base64:$(openssl rand -base64 32)"
+          set_env DB_PASSWORD "$(openssl rand -hex 16)"
+          set_env REDIS_PASSWORD "$(openssl rand -hex 16)"
+          set_env REVERB_APP_SECRET "$(openssl rand -hex 16)"
+          set_env PERSONNEL_API_BASE_URL https://personnel.invalid
+
+      - name: Build images (backend + Flutter web inside Docker)
+        run: docker compose build
+
+      - name: Start the stack
+        run: docker compose up -d --wait --wait-timeout 300
+
+      - name: Create the first Super Administrator
+        run: docker compose exec -T app php artisan nis:create-admin 100001 --name="CI Admin" --password='Ci-Passw0rd!long'
+
+      - name: Check the site through Caddy
+        run: |
+          set -e
+          c() { curl -sk --resolve localhost:443:127.0.0.1 "$@"; }
+          echo "--- /up";               c -o /dev/null -w "%{http_code}\n" https://localhost/up | grep -q 200
+          echo "--- web app";           c https://localhost/ | grep -qi "flutter"
+          echo "--- web app fallback";  c https://localhost/some/deep/link | grep -qi "flutter"
+          echo "--- admin login";       c https://localhost/admin/login | grep -q "Sign in"
+          echo "--- admin assets";      c -o /dev/null -w "%{http_code}\n" https://localhost/portal-assets/nis-logo.jpg | grep -q 200
+          echo "--- admin CSP";         c -I https://localhost/admin/login | grep -qi "content-security-policy"
+          echo "--- API";               c -o /dev/null -w "%{http_code}\n" -H "Accept: application/json" https://localhost/api/v1/users/me | grep -q 401
+          echo "--- http -> https";     curl -s -o /dev/null -w "%{http_code}\n" --resolve localhost:80:127.0.0.1 http://localhost/ | grep -qE "30[18]"
+          echo "--- websocket (Reverb)"
+          c -i -N --max-time 5 -H "Connection: Upgrade" -H "Upgrade: websocket" -H "Sec-WebSocket-Version: 13" \
+            -H "Sec-WebSocket-Key: dGhlIHNhbXBsZSBub25jZQ==" --http1.1 \
+            "https://localhost/app/nisconnect?protocol=7&client=ci&version=1.0" 2>/dev/null | head -1 | tee /tmp/ws.txt
+          grep -q " 101" /tmp/ws.txt
+
+      - name: Admin sign-in works end to end
+        run: |
+          set -e
+          jar=$(mktemp)
+          page=$(curl -sk -c "$jar" -b "$jar" --resolve localhost:443:127.0.0.1 https://localhost/admin/login)
+          token=$(echo "$page" | grep -o 'name="_token" value="[^"]*"' | head -1 | sed 's/.*value="//;s/"//')
+          code=$(curl -sk -c "$jar" -b "$jar" --resolve localhost:443:127.0.0.1 -o /dev/null -w "%{redirect_url}" \
+            -d "_token=$token&service_number=100001&password=Ci-Passw0rd!long" https://localhost/admin/login)
+          echo "redirect: $code"; echo "$code" | grep -q "/admin$\|/admin/$"
+          curl -sk -c "$jar" -b "$jar" --resolve localhost:443:127.0.0.1 https://localhost/admin | grep -q "Dashboard"
+          curl -sk -c "$jar" -b "$jar" --resolve localhost:443:127.0.0.1 https://localhost/admin/system | grep -q "System health"
+
+      - name: Backup script runs
+        run: |
+          sudo ./backup.sh
+          sudo ./backup.sh --list
+          sudo sh -c 'test -s "$(ls -t /var/backups/nisconnect/*.dump | head -1)"'
+
+      - name: Logs
+        if: always()
+        run: docker compose ps; docker compose logs --tail=200

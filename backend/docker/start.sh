@@ -1,5 +1,17 @@
 #!/bin/sh
-# Container entrypoint: prepare Laravel, migrate, then serve on $PORT.
+# Container entrypoint.
+#
+#   nisconnect-start              prepare Laravel, migrate (unless
+#                                 RUN_MIGRATIONS=false), then serve the API +
+#                                 admin portal with Apache on $PORT.
+#   nisconnect-start <command...> prepare Laravel, then run <command> instead of
+#                                 Apache, e.g. `php artisan queue:work`. Used by
+#                                 the worker / scheduler / reverb containers of
+#                                 infrastructure/production. Never migrates.
+#
+# RUN_MIGRATIONS (default true) and RUN_SEEDERS (default true) keep the Render
+# test deployment's behaviour: migrate and run the idempotent base seeders on
+# every start.
 set -e
 cd /var/www/html
 
@@ -17,12 +29,28 @@ case "$APP_KEY" in
 esac
 
 php artisan package:discover --ansi
-php artisan migrate --force --seed
+
+if [ "$#" -eq 0 ] && [ "${RUN_MIGRATIONS:-true}" = "true" ]; then
+    if [ "${RUN_SEEDERS:-true}" = "true" ]; then
+        php artisan migrate --force --seed
+    else
+        php artisan migrate --force
+    fi
+fi
+
 php artisan config:cache
 php artisan route:cache || true
 php artisan view:cache || true
 
-chown -R www-data:www-data storage bootstrap/cache
+# Only possible (and only needed) when the container runs as root; the
+# production worker/scheduler/reverb containers already run as www-data.
+if [ "$(id -u)" = "0" ]; then
+    chown -R www-data:www-data storage bootstrap/cache
+fi
+
+if [ "$#" -gt 0 ]; then
+    exec "$@"
+fi
 
 sed -ri "s/^Listen .*/Listen ${PORT:-8080}/" /etc/apache2/ports.conf
 sed -ri "s/<VirtualHost \*:[0-9]+>/<VirtualHost *:${PORT:-8080}>/" /etc/apache2/sites-available/000-default.conf

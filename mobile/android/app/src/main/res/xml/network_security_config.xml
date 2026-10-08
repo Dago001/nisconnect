@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Release / profile builds: HTTPS and WSS only, system certificate
+     authorities only (user-installed CAs are not trusted). Debug builds
+     override this file from src/debug/res/xml to reach the local dev stack. -->
+<network-security-config>
+    <base-config cleartextTrafficPermitted="false">
+        <trust-anchors>
+            <certificates src="system"/>
+        </trust-anchors>
+    </base-config>
+</network-security-config>

@@ -5,6 +5,11 @@ import 'package:flutter/foundation.dart';
 ///
 /// The server can also be changed at runtime from the app's "Server address"
 /// setting (see [ServerSettings]); that value wins over the build-time one.
+///
+/// A web build made without API_BASE_URL and served from a real domain talks
+/// to the origin it was loaded from (`https://domain/api/v1`,
+/// `wss://domain/app/...`), so one build works on any domain behind the
+/// production proxy (infrastructure/production).
 class AppConfig {
   AppConfig._();
 
@@ -20,9 +25,26 @@ class AppConfig {
   static String get _devHost =>
       !kIsWeb && defaultTargetPlatform == TargetPlatform.android ? '10.0.2.2' : 'localhost';
 
+  /// Replaces the page address in tests; null means [Uri.base] on the web.
+  @visibleForTesting
+  static Uri? debugPageUri;
+
+  /// The page's origin when this is a web build without API_BASE_URL served
+  /// from a non-local host; otherwise null (local development keeps using
+  /// the dev host and ports below).
+  static Uri? get _pageOrigin {
+    if (_apiBaseUrl.isNotEmpty) return null;
+    final page = debugPageUri ?? (kIsWeb ? Uri.base : null);
+    if (page == null || (page.scheme != 'https' && page.scheme != 'http')) return null;
+    const localHosts = {'localhost', '127.0.0.1', '0.0.0.0', '::1', '[::1]'};
+    if (page.host.isEmpty || localHosts.contains(page.host)) return null;
+    return Uri(scheme: page.scheme, host: page.host, port: page.port);
+  }
+
+  /// The runtime server: the user's override, else the web page's origin.
   static Uri? get _override {
     final value = serverOverride;
-    if (value == null || value.isEmpty) return null;
+    if (value == null || value.isEmpty) return _pageOrigin;
     return Uri.tryParse(value);
   }
 

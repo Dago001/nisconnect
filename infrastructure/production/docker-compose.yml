@@ -1,0 +1,188 @@
+name: nisconnect
+
+# NISconnect production stack for a single Linux server (see docs/GO_LIVE.md).
+#
+#   cd infrastructure/production
+#   cp .env.example .env        # then fill in every value marked CHANGE ME
+#   docker compose up -d --build
+#
+# Only Caddy is reachable from the internet (ports 80/443). Everything else
+# talks over the private "internal" network. No source code is mounted: the
+# backend and the web app are baked into images, so an update is
+# `git pull && docker compose up -d --build`.
+
+x-backend: &backend
+  # One image (backend/Dockerfile) runs the API, the queue worker, the
+  # scheduler and the websocket server; only the command differs.
+  image: nisconnect-app:latest
+  build:
+    context: ../../backend
+  env_file:
+    # required: false only so `docker compose config` can be checked without a
+    # .env; the stack itself refuses to start without APP_DOMAIN etc.
+    - path: .env
+      required: false
+  environment:
+    # Derived from APP_DOMAIN so links, cookies and redirects use the public URL.
+    APP_URL: https://${APP_DOMAIN:?Set APP_DOMAIN in .env}
+  restart: unless-stopped
+  networks: [internal]
+  logging: &logging
+    driver: json-file
+    options:
+      max-size: "20m"
+      max-file: "5"
+
+services:
+  # --- Public entry point: HTTPS, the web app, and routing to the backend ---
+  caddy:
+    image: nisconnect-web:latest
+    build:
+      context: ../..
+      dockerfile: infrastructure/production/web.Dockerfile
+      args:
+        WEB_SOURCE: ${WEB_SOURCE:-build}
+        FLUTTER_VERSION: ${FLUTTER_VERSION:-3.47.6}
+        WS_KEY: ${REVERB_APP_KEY:-nisconnect}
+    environment:
+      APP_DOMAIN: ${APP_DOMAIN:?Set APP_DOMAIN in .env}
+      ACME_EMAIL: ${ACME_EMAIL:?Set ACME_EMAIL in .env}
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp" # HTTP/3
+    volumes:
+      - caddy_data:/data # TLS certificates — keep this volume
+      - caddy_config:/config
+    depends_on:
+      - app
+      - reverb
+    restart: unless-stopped
+    networks: [internal]
+    logging: *logging
+
+  # --- Laravel API + admin portal (Apache + PHP on :8080, internal only) ---
+  app:
+    <<: *backend
+    environment:
+      APP_URL: https://${APP_DOMAIN:?Set APP_DOMAIN in .env}
+      PORT: "8080"
+      # Migrate (and run the idempotent base seeders) on every start. Set
+      # RUN_MIGRATIONS=false in .env to migrate by hand instead.
+      RUN_MIGRATIONS: ${RUN_MIGRATIONS:-true}
+      RUN_SEEDERS: ${RUN_SEEDERS:-true}
+    volumes:
+      - storage:/var/www/html/storage # uploaded media, logs, framework cache
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://127.0.0.1:8080/up"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 120s
+
+  # --- Queue worker: broadcasts, push, SMS, media jobs ---
+  worker:
+    <<: *backend
+    user: www-data
+    # --max-time makes the worker exit hourly; Docker restarts it with fresh memory.
+    command: ["nisconnect-start", "php", "artisan", "queue:work", "redis",
+              "--tries=3", "--timeout=90", "--sleep=1", "--max-time=3600"]
+    volumes:
+      - storage:/var/www/html/storage
+    depends_on:
+      app:
+        condition: service_healthy
+    stop_grace_period: 100s
+
+  # --- Scheduler: runs routes/console.php schedules every minute ---
+  scheduler:
+    <<: *backend
+    user: www-data
+    command: ["nisconnect-start", "php", "artisan", "schedule:work"]
+    volumes:
+      - storage:/var/www/html/storage
+    depends_on:
+      app:
+        condition: service_healthy
+
+  # --- Laravel Reverb websocket server (Pusher protocol) on :8080 ---
+  reverb:
+    <<: *backend
+    user: www-data
+    command: ["nisconnect-start", "php", "artisan", "reverb:start",
+              "--host=0.0.0.0", "--port=8080"]
+    depends_on:
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "php", "-r", "exit(@fsockopen('127.0.0.1', 8080) ? 0 : 1);"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    ulimits:
+      nofile:
+        soft: 65536
+        hard: 65536
+
+  # --- PostgreSQL 16 (internal only, data in the pgdata volume) ---
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: ${DB_DATABASE:-nisconnect}
+      POSTGRES_USER: ${DB_USERNAME:-nisconnect}
+      # Postgres refuses to initialise with an empty password.
+      POSTGRES_PASSWORD: ${DB_PASSWORD?Set DB_PASSWORD in .env}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U \"$$POSTGRES_USER\" -d \"$$POSTGRES_DB\""]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+    shm_size: 256mb
+    restart: unless-stopped
+    networks: [internal]
+    logging: *logging
+
+  # --- Redis 7: cache, queue, sessions (password-protected, internal only) ---
+  redis:
+    image: redis:7-alpine
+    # Refuses to start without a password.
+    command:
+      - sh
+      - -c
+      - '[ -n "$$REDIS_PASSWORD" ] || { echo "Set REDIS_PASSWORD in .env" >&2; exit 1; };
+        exec redis-server --appendonly yes --requirepass "$$REDIS_PASSWORD"'
+    environment:
+      REDIS_PASSWORD: ${REDIS_PASSWORD?Set REDIS_PASSWORD in .env}
+      REDISCLI_AUTH: ${REDIS_PASSWORD?Set REDIS_PASSWORD in .env}
+    volumes:
+      - redisdata:/data
+    healthcheck:
+      test: ["CMD-SHELL", "redis-cli ping | grep -q PONG"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+    restart: unless-stopped
+    networks: [internal]
+    logging: *logging
+
+networks:
+  internal:
+    # Fixed range so TRUSTED_PROXIES in .env can name Caddy's addresses.
+    ipam:
+      config:
+        - subnet: 172.28.10.0/24
+
+volumes:
+  pgdata:
+  redisdata:
+  storage:
+  caddy_data:
+  caddy_config:

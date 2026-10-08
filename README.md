@@ -23,7 +23,7 @@ nisconnect/
 ├── backend/          Laravel 11 + PostgreSQL API (runs & tested)
 ├── mobile/           Flutter (Android/iOS) app  (code; needs a Flutter SDK to build)
 ├── admin/            Admin portal (Laravel/Blade)
-├── infrastructure/   Docker, nginx, deploy config
+├── infrastructure/   Docker: dev stack + production/ (Caddy HTTPS, app, worker, Reverb, Postgres, Redis, backups)
 ├── docs/             Architecture, security, DB, API, design system, deployment
 ├── assets/           Provided NIS crest + HQ imagery (source of truth)
 └── README.md
@@ -38,7 +38,8 @@ nisconnect/
 | [docs/PERSONNEL_INTEGRATION.md](docs/PERSONNEL_INTEGRATION.md) | Personnel provider interface, demo/api/database adapters, Service Number rules |
 | [docs/DESIGN_SYSTEM.md](docs/DESIGN_SYSTEM.md) | Green colour system, Arial typography, components, dark mode, accessibility |
 | [docs/API.md](docs/API.md) · [docs/openapi.yaml](docs/openapi.yaml) | Full v1 endpoint reference + OpenAPI 3.0 spec (52 paths) |
-| [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) | Docker stack, production checklist, backups, RPO/RTO, CI/CD |
+| [docs/GO_LIVE.md](docs/GO_LIVE.md) | **Step-by-step go-live**: domain, server, production Docker stack, first admin, NIS integrations, Play Store / App Store, updates, backups, monitoring |
+| [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) | Deployment options (production / dev / Render test), routing, checklist, backups, RPO/RTO, CI/CD |
 
 ## What is implemented and tested (backend)
 
@@ -56,8 +57,12 @@ nisconnect/
   schema (45+ tables), seeders.
 - **Admin portal** (Laravel/Blade, server-rendered, RBAC-gated): dashboard stats,
   user search, suspend/reactivate, revoke devices — all audited. At `/admin/login`.
-- **Docker stack** (`infrastructure/`): Nginx, PHP-FPM, PostgreSQL, Redis, Reverb
-  (WebSockets), queue worker, MinIO, LiveKit; plus GitHub Actions CI.
+- **Docker stacks**: development (`infrastructure/`: Nginx, PHP-FPM, PostgreSQL, Redis,
+  Reverb, queue worker, MinIO, LiveKit) and **production** (`infrastructure/production/`:
+  Caddy with automatic HTTPS serving the web app + API + admin + websockets on one domain,
+  queue worker, scheduler, Reverb, PostgreSQL 16, Redis 7, nightly backups — see
+  [docs/GO_LIVE.md](docs/GO_LIVE.md)); GitHub Actions CI plus a tag-triggered release
+  workflow (web zip, signed APK/AAB, iOS IPA).
 - **78 passing tests** (feature + unit) against PostgreSQL.
 
 Also implemented and tested: **private & group messaging** (realtime events, read

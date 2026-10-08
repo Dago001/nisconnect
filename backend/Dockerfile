@@ -1,7 +1,9 @@
 # Self-contained production image for the NISconnect API + admin portal:
 # Apache + mod_php serving public/. Used by the Render blueprint
-# (../render.yaml); runs anywhere Docker runs. The docker-compose stack in
-# ../infrastructure (nginx + php-fpm) remains the full multi-service setup.
+# (../render.yaml) and by the production stack in
+# ../infrastructure/production (app, worker, scheduler and reverb all run this
+# image; see docker/start.sh). The docker-compose stack in ../infrastructure
+# (nginx + php-fpm, source mounted) is the local development setup.
 
 FROM composer:2 AS vendor
 WORKDIR /app
@@ -15,8 +17,32 @@ FROM php:8.4-apache
 RUN apt-get update \
     && apt-get install -y --no-install-recommends libpq-dev libicu-dev libzip-dev \
     && docker-php-ext-install pdo_pgsql pgsql intl zip bcmath pcntl opcache \
+    && pecl install redis \
+    && docker-php-ext-enable redis \
+    && rm -rf /tmp/pear \
     && a2enmod rewrite headers \
     && rm -rf /var/lib/apt/lists/*
+
+# Production PHP settings: 60 MB request bodies (media uploads are capped at
+# 50 MB by the API), opcache on (the code never changes inside the image),
+# no version banners.
+RUN cp "$PHP_INI_DIR/php.ini-production" "$PHP_INI_DIR/php.ini" \
+    && { \
+        echo 'upload_max_filesize=60M'; \
+        echo 'post_max_size=64M'; \
+        echo 'memory_limit=256M'; \
+        echo 'expose_php=Off'; \
+        echo 'opcache.enable=1'; \
+        echo 'opcache.enable_cli=0'; \
+        echo 'opcache.memory_consumption=128'; \
+        echo 'opcache.max_accelerated_files=20000'; \
+        echo 'opcache.validate_timestamps=0'; \
+    } > "$PHP_INI_DIR/conf.d/zz-nisconnect.ini" \
+    && { \
+        echo 'ServerTokens Prod'; \
+        echo 'ServerSignature Off'; \
+    } > /etc/apache2/conf-available/zz-nisconnect.conf \
+    && a2enconf zz-nisconnect
 
 ENV APACHE_DOCUMENT_ROOT=/var/www/html/public
 RUN sed -ri -e 's!/var/www/html!${APACHE_DOCUMENT_ROOT}!g' \
