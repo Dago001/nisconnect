@@ -13,6 +13,7 @@ class OnboardingState {
     this.verificationId,
     this.record,
     this.phone,
+    this.testCode,
   });
 
   final OnboardingStep step;
@@ -22,6 +23,9 @@ class OnboardingState {
   final PersonnelRecord? record;
   final String? phone;
 
+  /// OTP echoed back by a test server (no SMS gateway); null in production.
+  final String? testCode;
+
   OnboardingState copyWith({
     OnboardingStep? step,
     bool? loading,
@@ -30,6 +34,7 @@ class OnboardingState {
     String? verificationId,
     PersonnelRecord? record,
     String? phone,
+    String? testCode,
   }) {
     return OnboardingState(
       step: step ?? this.step,
@@ -38,6 +43,7 @@ class OnboardingState {
       verificationId: verificationId ?? this.verificationId,
       record: record ?? this.record,
       phone: phone ?? this.phone,
+      testCode: testCode ?? this.testCode,
     );
   }
 }
@@ -76,8 +82,9 @@ class OnboardingController extends StateNotifier<OnboardingState> {
   Future<void> submitPhone(String phone) async {
     state = state.copyWith(loading: true, clearError: true);
     try {
-      await _repo.confirmIdentity(state.verificationId!, phone);
-      state = state.copyWith(loading: false, step: OnboardingStep.otp, phone: phone);
+      final testCode = await _repo.confirmIdentity(state.verificationId!, phone);
+      state = state.copyWith(
+          loading: false, step: OnboardingStep.otp, phone: phone, testCode: testCode);
     } catch (e) {
       state = state.copyWith(loading: false, error: e.toString());
     }

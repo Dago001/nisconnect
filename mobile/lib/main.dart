@@ -1,11 +1,19 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'core/config/app_config.dart';
 import 'core/router/app_router.dart';
+import 'core/storage/secure_storage.dart';
 import 'core/theme/app_colors.dart';
 import 'core/theme/app_theme.dart';
 
-void main() {
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  try {
+    AppConfig.serverOverride = await secureStorage.readServerUrl();
+  } catch (_) {
+    // Storage unavailable: fall back to the build-time server.
+  }
   runApp(const ProviderScope(child: NISconnectApp()));
 }
 

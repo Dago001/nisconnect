@@ -31,6 +31,7 @@ class ServiceNumberField extends StatelessWidget {
         labelText: 'Service Number',
         hintText: 'e.g. 123456',
         errorText: errorText,
+        errorMaxLines: 4,
         prefixIcon: const Icon(Icons.badge_outlined),
       ),
       onSubmitted: onSubmitted,

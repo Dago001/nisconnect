@@ -27,9 +27,12 @@ class AuthRepository {
   }
 
   /// Step 2 — confirm identity + phone; OTP is sent.
-  Future<void> confirmIdentity(String verificationId, String phone) async {
-    await _api.post('/auth/confirm-identity',
+  /// Returns the OTP only when the server is a test deployment that exposes
+  /// it (`OTP_EXPOSE_IN_RESPONSE=true`, never in production); otherwise null.
+  Future<String?> confirmIdentity(String verificationId, String phone) async {
+    final res = await _api.post<Map<String, dynamic>>('/auth/confirm-identity',
         data: {'verification_id': verificationId, 'phone': phone});
+    return res.data?['debug_code']?.toString();
   }
 
   Future<void> resendOtp(String verificationId) async {

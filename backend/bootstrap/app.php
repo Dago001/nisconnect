@@ -21,6 +21,13 @@ return Application::configure(basePath: dirname(__DIR__))
         // Guests hitting a guarded web route go to the admin login (API routes
         // stay stateless and return 401 via Sanctum).
         $middleware->redirectGuestsTo(fn () => route('admin.login'));
+
+        // Behind a load balancer / PaaS router (e.g. Render), trust its
+        // X-Forwarded-* headers so client IPs (rate limits, audit) and https
+        // are seen correctly. "*" or a comma-separated list; unset = trust none.
+        if ($proxies = env('TRUSTED_PROXIES')) {
+            $middleware->trustProxies(at: $proxies === '*' ? '*' : explode(',', $proxies));
+        }
     })
     ->withExceptions(function (Exceptions $exceptions) {
         //

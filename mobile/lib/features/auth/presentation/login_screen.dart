@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../../core/platform/client_platform.dart';
 import '../../../core/theme/app_typography.dart';
+import '../../../shared/widgets/server_settings_dialog.dart';
 import '../../../shared/widgets/primary_button.dart';
 import '../../../shared/widgets/service_number_field.dart';
 import '../data/auth_repository.dart';
@@ -60,10 +61,12 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 obscureText: true,
                 keyboardType: TextInputType.number,
                 inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                decoration: InputDecoration(labelText: 'PIN', errorText: _error),
+                decoration: InputDecoration(labelText: 'PIN', errorText: _error, errorMaxLines: 4),
               ),
               const SizedBox(height: 20),
               PrimaryButton(label: 'Sign in', loading: _loading, onPressed: _submit),
+              const SizedBox(height: 8),
+              const Center(child: ServerAddressButton()),
             ],
           ),
         ),
