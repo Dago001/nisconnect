@@ -171,7 +171,7 @@ textarea{resize:vertical}
 
 /* Auth pages */
 .auth{min-height:100vh;display:grid;grid-template-columns:1.1fr 1fr}
-.auth-hero{background:linear-gradient(160deg,rgba(6,47,27,.92),rgba(11,107,58,.85)),url('{{ asset('admin/hq.jpg') }}') center/cover;color:#fff;padding:48px;display:flex;flex-direction:column;justify-content:space-between}
+.auth-hero{background:linear-gradient(160deg,rgba(6,47,27,.92),rgba(11,107,58,.85)),url('{{ asset('portal-assets/hq.jpg') }}') center/cover;color:#fff;padding:48px;display:flex;flex-direction:column;justify-content:space-between}
 .auth-hero h1{font-size:30px}
 .auth-panel{display:flex;align-items:center;justify-content:center;padding:32px;background:var(--surface)}
 .auth-box{width:100%;max-width:380px}

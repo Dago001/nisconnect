@@ -4,7 +4,7 @@
 <div class="auth">
     <div class="auth-hero">
         <div style="display:flex;gap:12px;align-items:center">
-            <img src="{{ asset('admin/nis-logo.jpg') }}" alt="" width="48" height="48" style="border-radius:10px;background:#fff">
+            <img src="{{ asset('portal-assets/nis-logo.jpg') }}" alt="" width="48" height="48" style="border-radius:10px;background:#fff">
             <div><strong style="font-size:18px">NISconnect</strong><div style="opacity:.8;font-size:13px">Nigeria Immigration Service</div></div>
         </div>
         <div>

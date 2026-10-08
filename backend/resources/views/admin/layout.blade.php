@@ -35,7 +35,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="robots" content="noindex, nofollow">
     <title>@yield('title', 'Portal') · NISconnect Admin</title>
-    <link rel="icon" href="{{ asset('admin/nis-logo.jpg') }}">
+    <link rel="icon" href="{{ asset('portal-assets/nis-logo.jpg') }}">
     @include('admin.partials.styles')
 </head>
 <body>
@@ -43,7 +43,7 @@
 <div class="shell">
     <aside class="sidebar" id="sidebar" aria-label="Main navigation">
         <a href="{{ route('admin.dashboard') }}" class="brand">
-            <img src="{{ asset('admin/nis-logo.jpg') }}" alt="" width="36" height="36">
+            <img src="{{ asset('portal-assets/nis-logo.jpg') }}" alt="" width="36" height="36">
             <span><strong>NISconnect</strong><small>Administration</small></span>
         </a>
         <nav>

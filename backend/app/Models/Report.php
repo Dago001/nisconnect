@@ -11,7 +11,7 @@ class Report extends Model
 
     protected $fillable = [
         'reporter_id', 'target_type', 'target_id', 'reason', 'details',
-        'status', 'reviewed_by', 'reviewed_at',
+        'status', 'reviewed_by', 'reviewed_at', 'resolution_note',
     ];
 
     protected function casts(): array

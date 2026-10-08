@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Admin\SystemController;
 use App\Models\PersonnelRecord;
 use App\Models\Role;
 use App\Models\User;
@@ -78,3 +79,5 @@ Artisan::command('nis:create-admin {service_number} {--role=super_admin} {--name
 // Housekeeping
 Schedule::command('sanctum:prune-expired --hours=24')->daily();
 Schedule::command('queue:prune-failed --hours=168')->daily();
+// Lets the System health page confirm the scheduler is running.
+Schedule::call([SystemController::class, 'recordHeartbeat'])->everyMinute()->name('scheduler-heartbeat');

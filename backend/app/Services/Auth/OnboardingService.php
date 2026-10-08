@@ -6,6 +6,7 @@ use App\Models\Device;
 use App\Models\OtpVerification;
 use App\Models\User;
 use App\Personnel\PersonnelRecordData;
+use App\Services\Admin\SettingsService;
 use App\Services\Otp\OtpService;
 use App\Services\Support\AuditLogger;
 use Illuminate\Support\Carbon;
@@ -25,9 +26,13 @@ class OnboardingService
         private readonly PersonnelVerificationService $personnel,
         private readonly OtpService $otp,
         private readonly AuditLogger $audit,
+        private readonly SettingsService $settings,
+        private readonly DeviceLimitService $deviceLimit,
     ) {}
 
     private const PREFIX = 'onboarding:';
+
+    public const REGISTRATION_CLOSED_MESSAGE = 'Registration is currently closed. Contact your administrator.';
 
     /**
      * Step 1 — begin a verification session for a found & authorised record.
@@ -116,6 +121,10 @@ class OnboardingService
     {
         $session = $this->requireSession($verificationId);
         abort_unless($session['phone_verified'] ?? false, 422, 'Phone not verified.');
+        // Registration may have been closed after this session started.
+        abort_if(! $this->settings->get('registration_open')
+            && ! User::where('service_number', $session['service_number'])->exists(),
+            403, self::REGISTRATION_CLOSED_MESSAGE);
 
         $recordData = $session['record'];
 
@@ -153,6 +162,8 @@ class OnboardingService
             );
             // Bind token to device.
             $token->accessToken->forceFill(['device_id' => $deviceModel->id])->save();
+
+            $this->deviceLimit->enforce($user, $deviceModel);
 
             $this->forgetSession($verificationId);
 
