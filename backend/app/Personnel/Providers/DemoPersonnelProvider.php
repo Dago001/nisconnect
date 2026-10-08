@@ -18,8 +18,10 @@ class DemoPersonnelProvider implements PersonnelProviderInterface
     /**
      * @param  string  $environment  The current application environment.
      */
-    public function __construct(private readonly string $environment = 'local')
-    {
+    public function __construct(
+        private readonly string $environment = 'local',
+        private readonly bool $acceptAny = false,
+    ) {
         if ($this->environment === 'production') {
             throw new RuntimeException(
                 'DemoPersonnelProvider must not be used in production. '
@@ -32,7 +34,32 @@ class DemoPersonnelProvider implements PersonnelProviderInterface
     {
         $records = $this->records();
 
-        return $records[$serviceNumber] ?? null;
+        if (isset($records[$serviceNumber])) {
+            return $records[$serviceNumber];
+        }
+
+        return $this->acceptAny ? $this->placeholder($serviceNumber) : null;
+    }
+
+    /**
+     * Synthetic active record for test deployments (PERSONNEL_DEMO_ACCEPT_ANY).
+     */
+    private function placeholder(string $serviceNumber): PersonnelRecordData
+    {
+        return new PersonnelRecordData(
+            serviceNumber: $serviceNumber,
+            surname: $serviceNumber,
+            firstName: 'Officer',
+            rank: 'Test Officer',
+            directorate: 'Test Directorate',
+            department: 'Testing',
+            zone: 'Zone A',
+            command: 'Service Headquarters',
+            formation: 'Headquarters',
+            unit: 'Test Unit',
+            posting: 'Service Headquarters, Abuja',
+            status: 'active',
+        );
     }
 
     /**

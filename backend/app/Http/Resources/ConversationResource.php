@@ -24,6 +24,15 @@ class ConversationResource extends JsonResource
                 'service_number' => $m->user?->service_number,
                 'rank' => $m->user?->personnelRecord?->rank,
             ])),
+            'last_message' => $this->whenLoaded('lastMessage', fn () => $this->lastMessage ? [
+                'id' => $this->lastMessage->id,
+                'sender_id' => $this->lastMessage->sender_id,
+                'type' => $this->lastMessage->type,
+                // Deleted messages keep their row but must not leak content.
+                'body' => $this->lastMessage->status === 'deleted' ? null : $this->lastMessage->body,
+                'status' => $this->lastMessage->status,
+                'created_at' => $this->lastMessage->created_at,
+            ] : null),
             'updated_at' => $this->updated_at,
         ];
     }

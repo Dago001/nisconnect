@@ -12,6 +12,11 @@ return [
     */
     'provider' => env('PERSONNEL_PROVIDER', 'demo'),
 
+    // Test deployments only: let the demo provider invent an active record for
+    // any well-formed Service Number, so testers can register with their own.
+    // Ignored outside the demo provider, which itself refuses production.
+    'demo_accept_any' => (bool) env('PERSONNEL_DEMO_ACCEPT_ANY', false),
+
     /*
     |--------------------------------------------------------------------------
     | Service Number rules (configurable, not hard-coded)

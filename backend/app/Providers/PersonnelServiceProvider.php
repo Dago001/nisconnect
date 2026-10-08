@@ -24,7 +24,10 @@ class PersonnelServiceProvider extends ServiceProvider
             $driver = (string) config('personnel.provider', 'demo');
 
             return match ($driver) {
-                'demo' => new DemoPersonnelProvider($app->environment()),
+                'demo' => new DemoPersonnelProvider(
+                    $app->environment(),
+                    (bool) config('personnel.demo_accept_any', false),
+                ),
                 'api' => new ApiPersonnelProvider(
                     $app->make(HttpFactory::class),
                     (array) config('personnel.api'),

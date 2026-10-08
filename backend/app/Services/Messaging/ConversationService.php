@@ -50,7 +50,7 @@ class ConversationService
     {
         return Conversation::query()
             ->whereHas('members', fn ($q) => $q->where('user_id', $user->id)->whereNull('left_at'))
-            ->with(['members.user.personnelRecord'])
+            ->with(['members.user.personnelRecord', 'lastMessage'])
             ->orderByDesc('updated_at')
             ->paginate($perPage);
     }

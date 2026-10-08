@@ -4,8 +4,8 @@
 # The API then lives at https://<service-name>.onrender.com; enter that under
 # "Server address" in the app.
 #
-# This is a TEST setup: the demo personnel provider (Service Numbers 123456,
-# 001234, 654321), OTP codes shown in the app instead of SMS, no websockets,
+# This is a TEST setup: the demo personnel provider (any Service Number is
+# accepted as a test officer), OTP codes shown in the app instead of SMS, no websockets,
 # calls or push. See docs/DEPLOYMENT.md for production.
 
 services:
@@ -48,6 +48,8 @@ services:
         value: local
       - key: PERSONNEL_PROVIDER
         value: demo
+      - key: PERSONNEL_DEMO_ACCEPT_ANY
+        value: "true"           # test only: any Service Number can register
       - key: OTP_DRIVER
         value: log
       - key: OTP_EXPOSE_IN_RESPONSE
