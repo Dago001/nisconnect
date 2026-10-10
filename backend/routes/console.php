@@ -19,9 +19,30 @@ use function Laravel\Prompts\text;
  * the first Super Administrator is created on a new server:
  *
  *   php artisan nis:create-admin 123456
+ *
+ * Hosting platforms without a shell (the Render blueprint) call it at start-up
+ * with --from-env: the Service Number, name and password come from
+ * NIS_ADMIN_SERVICE_NUMBER / NIS_ADMIN_NAME / NIS_ADMIN_PASSWORD, nothing
+ * happens once that account has a password (so restarts never reset it), and
+ * the password must be changed at first sign-in.
  */
-Artisan::command('nis:create-admin {service_number} {--role=super_admin} {--name=} {--password=}', function () {
-    $sn = (string) $this->argument('service_number');
+Artisan::command('nis:create-admin {service_number?} {--role=super_admin} {--name=} {--password=} {--from-env}', function () {
+    $fromEnv = (bool) $this->option('from-env');
+    $sn = (string) ($fromEnv ? env('NIS_ADMIN_SERVICE_NUMBER', '') : $this->argument('service_number'));
+    if ($fromEnv) {
+        if ($sn === '' || (string) env('NIS_ADMIN_PASSWORD', '') === '') {
+            $this->line('NIS_ADMIN_SERVICE_NUMBER / NIS_ADMIN_PASSWORD not set; no administrator created.');
+
+            return 0;
+        }
+        if (User::where('service_number', $sn)->whereNotNull('password_hash')->exists()) {
+            $this->line("Administrator {$sn} already exists; leaving it unchanged.");
+
+            return 0;
+        }
+        $this->input->setOption('name', (string) env('NIS_ADMIN_NAME', '') ?: 'Super Administrator');
+        $this->input->setOption('password', (string) env('NIS_ADMIN_PASSWORD'));
+    }
     if (! preg_match('/^[0-9]{1,20}$/', $sn)) {
         $this->error('Service Numbers contain digits only.');
 
@@ -66,7 +87,7 @@ Artisan::command('nis:create-admin {service_number} {--role=super_admin} {--name
     $user->forceFill([
         'password_hash' => Hash::make($plain),
         'password_changed_at' => now(),
-        'must_change_password' => false,
+        'must_change_password' => $fromEnv,
         'account_state' => User::STATE_ACTIVE,
     ])->save();
     UserRole::firstOrCreate(['user_id' => $user->id, 'role_id' => $role->id, 'scope_type' => null, 'scope_id' => null]);

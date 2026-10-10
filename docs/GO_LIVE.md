@@ -5,6 +5,9 @@ the website, the admin portal, the API and real-time messaging on your own domai
 Android and iOS apps in the stores. It is written for someone who has not run a server
 before. Do the parts in order; every command can be copied and pasted.
 
+> **Prefer not to manage a server?** [RENDER.md](RENDER.md) puts the same app on Render with
+> a few clicks (no Linux, HTTPS included), including the page where officers download the app.
+
 **What you end up with**
 
 | Address | What it is |

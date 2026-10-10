@@ -38,6 +38,7 @@ nisconnect/
 | [docs/PERSONNEL_INTEGRATION.md](docs/PERSONNEL_INTEGRATION.md) | Personnel provider interface, demo/api/database adapters, Service Number rules |
 | [docs/DESIGN_SYSTEM.md](docs/DESIGN_SYSTEM.md) | Green colour system, Arial typography, components, dark mode, accessibility |
 | [docs/API.md](docs/API.md) · [docs/openapi.yaml](docs/openapi.yaml) | Full v1 endpoint reference + OpenAPI 3.0 spec (52 paths) |
+| [docs/RENDER.md](docs/RENDER.md) | **Easiest go-live**: everything on Render (no server to manage), app download page, first admin, SMS later |
 | [docs/GO_LIVE.md](docs/GO_LIVE.md) | **Step-by-step go-live**: domain, server, production Docker stack, first admin, NIS integrations, Play Store / App Store, updates, backups, monitoring |
 | [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) | Deployment options (production / dev / Render test), routing, checklist, backups, RPO/RTO, CI/CD |
 

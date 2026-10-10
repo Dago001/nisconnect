@@ -25,6 +25,7 @@
         'System' => [
             ['admin.settings.index', 'Settings', 'cog', 'settings.manage', 'admin.settings.*'],
             ['admin.system.index', 'System health', 'activity', 'system.view', 'admin.system.*'],
+            ['admin.downloads.index', 'App downloads', 'download', 'downloads.manage', 'admin.downloads.*'],
         ],
     ];
 @endphp

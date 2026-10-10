@@ -1,5 +1,7 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_typography.dart';
@@ -54,6 +56,15 @@ class WelcomeScreen extends StatelessWidget {
                     child: const Text('I already have an account'),
                   ),
                   const SizedBox(height: 4),
+                  // The website offers the Android app and iPhone instructions.
+                  if (kIsWeb)
+                    Center(
+                      child: TextButton.icon(
+                        onPressed: () => launchUrl(Uri.base.resolve('/download'), webOnlyWindowName: '_self'),
+                        icon: const Icon(Icons.download_rounded, size: 18),
+                        label: const Text('Get the mobile app'),
+                      ),
+                    ),
                   const Center(child: ServerAddressButton()),
                 ],
               ),

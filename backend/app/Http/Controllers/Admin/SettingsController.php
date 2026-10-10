@@ -71,6 +71,8 @@ class SettingsController extends Controller
             ['label' => 'Personnel provider', 'value' => $provider.(config('personnel.demo_accept_any') ? ' (accept any number)' : ''),
                 'warn' => $provider === 'demo' ? 'Using demo personnel data. Connect the authorised NIS personnel source before go-live.' : null],
             ['label' => 'OTP driver', 'value' => (string) config('otp.driver')],
+            ['label' => 'Sign-up codes', 'value' => config('otp.onboarding_show_code') ? 'Shown on screen' : 'Sent by SMS',
+                'warn' => config('otp.onboarding_show_code') ? 'Sign-up codes are shown on the officer\'s screen because no SMS gateway is set up. Set OTP_DRIVER=termii with TERMII_API_KEY, then OTP_ONBOARDING_SHOW_CODE=false.' : null],
             ['label' => 'OTP codes in API responses', 'value' => $otpExposed ? 'Exposed' : 'Hidden',
                 'warn' => $otpExposed ? 'Verification codes are returned in API responses. Only acceptable for local development and testing.' : null],
             ['label' => 'Push driver', 'value' => (string) config('services.push.driver')],

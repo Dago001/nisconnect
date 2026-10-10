@@ -21,7 +21,8 @@ on:
 
 env:
   FLUTTER_VERSION: "3.47.6"
-  # Empty on push/PR builds, so the app falls back to the local dev host.
+  # Empty on push/PR builds: the website build uses its own address, and the
+  # APK uses the LIVE_SERVER_URL repository variable (see the android job).
   BACKEND_DEFINES: >-
     ${{ inputs.api_base_url && format('--dart-define=API_BASE_URL={0}', inputs.api_base_url) || '' }}
     ${{ inputs.ws_host && format('--dart-define=WS_HOST={0} --dart-define=WS_SCHEME=wss --dart-define=WS_PORT=443', inputs.ws_host) || '' }}
@@ -75,6 +76,20 @@ jobs:
           flutter-version: ${{ env.FLUTTER_VERSION }}
           cache: true
       - run: flutter pub get
+      # The live server the downloadable APK talks to out of the box: the
+      # repository variable LIVE_SERVER_URL (Settings > Secrets and variables >
+      # Actions > Variables), e.g. https://nisconnect.onrender.com. A manual
+      # run's api_base_url input wins. Officers can still change it in the app.
+      - name: Live server address
+        env:
+          LIVE_SERVER_URL: ${{ vars.LIVE_SERVER_URL }}
+        run: |
+          if [ -z "$(echo "$BACKEND_DEFINES" | tr -d ' ')" ] && [ -n "$LIVE_SERVER_URL" ]; then
+            root="${LIVE_SERVER_URL%/}"
+            host="${root#https://}"; host="${host%%/*}"
+            echo "BACKEND_DEFINES=--dart-define=API_BASE_URL=$root/api/v1 --dart-define=WS_HOST=$host --dart-define=WS_SCHEME=wss --dart-define=WS_PORT=443" >> "$GITHUB_ENV"
+            echo "Building against $root"
+          fi
       # One APK per CPU type instead of one "fat" APK holding all three:
       # arm64 covers almost every phone in use; armeabi-v7a is for old 32-bit
       # phones. --obfuscate also shrinks the Dart code (symbols kept aside).

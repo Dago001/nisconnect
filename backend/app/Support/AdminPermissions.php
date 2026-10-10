@@ -38,6 +38,7 @@ final class AdminPermissions
             'security.view' => ['View security events', 'Security'],
             'settings.manage' => ['Change system settings', 'System'],
             'system.view' => ['View system health', 'System'],
+            'downloads.manage' => ['Manage app downloads', 'System'],
             'messages.send' => ['Send messages (officer app)', 'Messaging'],
         ];
     }
@@ -53,7 +54,7 @@ final class AdminPermissions
 
         return [
             'super_admin' => $all,
-            'nis_admin' => array_values(array_diff($all, ['roles.manage', 'settings.manage', 'admins.manage'])),
+            'nis_admin' => array_values(array_diff($all, ['roles.manage', 'settings.manage', 'admins.manage', 'downloads.manage'])),
             'security_admin' => [
                 'dashboard.view', 'officers.view', 'officers.manage', 'officers.export',
                 'devices.view', 'devices.revoke', 'audit.view', 'audit.export',

@@ -176,7 +176,7 @@ textarea{resize:vertical}
 .auth-panel{display:flex;align-items:center;justify-content:center;padding:32px;background:var(--surface)}
 .auth-box{width:100%;max-width:380px}
 
-@media (max-width:1100px){.grid-3{grid-template-columns:repeat(2,minmax(0,1fr))}.grid-sidebar{grid-template-columns:1fr}}
+@media (max-width:1100px){.grid-3{grid-template-columns:repeat(2,minmax(0,1fr))}.grid-sidebar{grid-template-columns:minmax(0,1fr)}}
 @media (max-width:860px){
   .sidebar{position:fixed;left:0;top:0;z-index:50;transform:translateX(-100%);transition:transform .2s}
   .sidebar.open{transform:none}

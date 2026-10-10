@@ -1,0 +1,107 @@
+# Render Blueprint: NISconnect LIVE service (web app + API + Super Admin portal
+# + app downloads, all on one https address). Step-by-step: docs/RENDER.md.
+#
+#   Render dashboard > New > Blueprint > this repository > Blueprint path:
+#   render.production.yaml > fill in the three NIS_ADMIN_* values > Apply.
+#
+# Paid plans (Render bills monthly): a web service with a 5 GB disk for uploaded
+# media and app files, and a Postgres database with daily backups. Frankfurt is
+# Render's region closest to Nigeria.
+#
+# Officers can register only if their Service Number is in Personnel records
+# (the Super Admin imports the authorised list as CSV). Until an SMS gateway is
+# set up, the sign-up code is shown on screen (OTP_ONBOARDING_SHOW_CODE);
+# docs/RENDER.md explains switching to SMS with Termii.
+#
+# render.yaml (the free test server) is separate and unaffected.
+
+services:
+  - type: web
+    name: nisconnect
+    runtime: docker
+    plan: standard
+    region: frankfurt
+    dockerfilePath: ./infrastructure/render/Dockerfile
+    dockerContext: .
+    healthCheckPath: /up
+    disk:
+      name: nisconnect-files
+      mountPath: /var/www/html/storage/app
+      sizeGB: 5
+    envVars:
+      # --- First Super Administrator (asked for when the Blueprint is created).
+      # Used once; the password must be changed at first sign-in.
+      - key: NIS_ADMIN_SERVICE_NUMBER
+        sync: false
+      - key: NIS_ADMIN_NAME
+        sync: false
+      - key: NIS_ADMIN_PASSWORD
+        sync: false
+
+      - key: APP_NAME
+        value: NISconnect
+      - key: APP_ENV
+        value: production
+      - key: APP_DEBUG
+        value: "false"
+      - key: APP_KEY
+        generateValue: true     # converted to Laravel's format at start-up
+      - key: LOG_CHANNEL
+        value: stderr
+      - key: LOG_LEVEL
+        value: info
+      - key: TRUSTED_PROXIES
+        value: "*"
+      - key: RUN_SCHEDULER
+        value: "true"           # housekeeping jobs run inside this service
+
+      - key: DB_CONNECTION
+        value: pgsql
+      - key: DB_URL
+        fromDatabase:
+          name: nisconnect-live-db
+          property: connectionString
+      - key: SESSION_DRIVER
+        value: database
+      - key: SESSION_SECURE_COOKIE
+        value: "true"
+      - key: CACHE_STORE
+        value: database
+      - key: QUEUE_CONNECTION
+        value: sync
+      - key: BROADCAST_CONNECTION
+        value: log              # chats refresh by polling; no websocket server
+      - key: FILESYSTEM_DISK
+        value: local            # on the persistent disk above
+
+      # --- Who may register: the Personnel records table in this database,
+      # maintained by the Super Admin (Personnel records > Import CSV).
+      - key: PERSONNEL_PROVIDER
+        value: database
+      - key: PERSONNEL_DB_CONNECTION
+        value: pgsql
+      - key: PERSONNEL_DB_TABLE
+        value: personnel_records
+
+      # --- Sign-up codes: shown on screen until SMS is set up. To switch to SMS,
+      # add TERMII_API_KEY (and TERMII_SENDER_ID), set OTP_DRIVER=termii and
+      # OTP_ONBOARDING_SHOW_CODE=false.
+      - key: OTP_DRIVER
+        value: none
+      - key: OTP_ONBOARDING_SHOW_CODE
+        value: "true"
+      - key: OTP_EXPOSE_IN_RESPONSE
+        value: "false"
+
+      - key: PUSH_DRIVER
+        value: log
+      - key: MAIL_MAILER
+        value: log
+
+databases:
+  - name: nisconnect-live-db
+    plan: basic-1gb
+    region: frankfurt
+    databaseName: nisconnect
+    user: nisconnect
+    postgresMajorVersion: "16"

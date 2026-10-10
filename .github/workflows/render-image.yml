@@ -1,0 +1,101 @@
+name: Render image
+
+# Builds the one-container image used by render.production.yaml (Flutter web
+# app + API + Super Admin portal + app downloads) and boots it against Postgres
+# with the same settings as the live Render service, so a broken image is
+# caught before Render deploys it.
+on:
+  push:
+    branches: ["**"]
+    paths: ["backend/**", "mobile/**", "infrastructure/render/**", "render.production.yaml", ".github/workflows/render-image.yml"]
+  pull_request:
+    paths: ["backend/**", "mobile/**", "infrastructure/render/**", "render.production.yaml", ".github/workflows/render-image.yml"]
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_DB: nisconnect
+          POSTGRES_USER: nisconnect
+          POSTGRES_PASSWORD: secret
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U nisconnect"
+          --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      BASE: http://127.0.0.1:10000
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build image
+        run: docker build -f infrastructure/render/Dockerfile -t nisconnect-render .
+
+      - name: Start container (live settings from render.production.yaml)
+        run: |
+          mkdir -p /tmp/disk
+          docker run -d --name app --network host -v /tmp/disk:/var/www/html/storage/app \
+            -e PORT=10000 -e RENDER_EXTERNAL_URL=$BASE \
+            -e APP_NAME=NISconnect -e APP_ENV=production -e APP_DEBUG=false -e APP_KEY=ci-secret \
+            -e LOG_CHANNEL=stderr -e TRUSTED_PROXIES='*' -e RUN_SCHEDULER=true \
+            -e DB_CONNECTION=pgsql -e DB_URL=postgresql://nisconnect:secret@127.0.0.1:5432/nisconnect \
+            -e SESSION_DRIVER=database -e CACHE_STORE=database -e QUEUE_CONNECTION=sync \
+            -e BROADCAST_CONNECTION=log -e FILESYSTEM_DISK=local \
+            -e PERSONNEL_PROVIDER=database -e PERSONNEL_DB_CONNECTION=pgsql -e PERSONNEL_DB_TABLE=personnel_records \
+            -e OTP_DRIVER=none -e OTP_ONBOARDING_SHOW_CODE=true -e OTP_EXPOSE_IN_RESPONSE=false \
+            -e PUSH_DRIVER=log -e MAIL_MAILER=log \
+            -e NIS_ADMIN_SERVICE_NUMBER=100001 -e NIS_ADMIN_NAME='CI Admin' -e NIS_ADMIN_PASSWORD='Ci-Passw0rd!long' \
+            nisconnect-render
+
+      - name: Wait for health check
+        run: |
+          for i in $(seq 1 90); do
+            curl -fsS $BASE/up >/dev/null && exit 0
+            sleep 2
+          done
+          docker logs app; exit 1
+
+      - name: Web app, portal and download page
+        run: |
+          set -ex
+          curl -fsS $BASE/ | grep -q flutter_bootstrap.js
+          curl -fsSI $BASE/ | grep -qi 'cache-control: no-cache'
+          curl -fsS -o /dev/null $BASE/main.dart.js
+          curl -fsS -o /dev/null $BASE/manifest.json
+          curl -fsS $BASE/admin/login | grep -qi 'service number'
+          curl -fsS $BASE/download | grep -qi 'android'
+          curl -fsS $BASE/download/latest.json | jq -e 'has("android")'
+          test "$(curl -s -o /dev/null -w '%{http_code}' $BASE/api/v1/users/me -H 'Accept: application/json')" = 401
+
+      - name: Sign-up allowed only for authorised Service Numbers; code shown on screen
+        run: |
+          set -ex
+          api() { curl -sS -X POST "$BASE/api/v1/auth/$1" -H 'Accept: application/json' -H 'Content-Type: application/json' -d "$2"; }
+          # Not in Personnel records: refused.
+          api verify-service-number '{"service_number":"555555"}' | tee /dev/stderr | jq -e '.verification_id == null'
+          PGPASSWORD=secret psql -h 127.0.0.1 -U nisconnect nisconnect -c \
+            "insert into personnel_records (id, service_number, surname, first_name, status, source, created_at, updated_at)
+             values (gen_random_uuid(), '555555', 'Bello', 'Ada', 'active', 'admin', now(), now())"
+          ID=$(api verify-service-number '{"service_number":"555555"}' | tee /dev/stderr | jq -r .verification_id)
+          test -n "$ID" && test "$ID" != null
+          api confirm-identity "{\"verification_id\":\"$ID\",\"phone\":\"08031234567\"}" | tee /dev/stderr | jq -e '.debug_code | test("^[0-9]{6}$")'
+
+      - name: First Super Administrator from NIS_ADMIN_* must change password
+        run: |
+          set -ex
+          J=/tmp/cookies; rm -f $J
+          TOKEN=$(curl -fsS -c $J -b $J $BASE/admin/login | grep -o 'name="_token" value="[^"]*"' | head -1 | sed 's/.*value="//;s/"$//')
+          curl -sS -c $J -b $J -o /dev/null -w '%{http_code} %{redirect_url}\n' -X POST $BASE/admin/login \
+            --data-urlencode "_token=$TOKEN" --data-urlencode service_number=100001 --data-urlencode 'password=Ci-Passw0rd!long' | tee /tmp/login
+          grep -q '^302' /tmp/login
+          curl -sS -c $J -b $J -L $BASE/admin | grep -qi 'password'
+
+      - name: Scheduler runs alongside Apache
+        run: docker exec app sh -c 'ps aux | grep -v grep | grep -q "schedule:work"'
+
+      - name: Container logs
+        if: always()
+        run: docker logs app 2>&1 | tail -200 || true

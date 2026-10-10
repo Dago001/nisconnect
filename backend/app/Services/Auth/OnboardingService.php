@@ -202,6 +202,7 @@ class OnboardingService
 
     private function exposeCode(): bool
     {
-        return ! app()->environment('production') && (bool) config('otp.expose_in_response', false);
+        return (bool) config('otp.onboarding_show_code', false)
+            || (! app()->environment('production') && (bool) config('otp.expose_in_response', false));
     }
 }

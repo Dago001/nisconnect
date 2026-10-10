@@ -32,6 +32,7 @@
                 <button class="btn" type="submit" style="width:100%;justify-content:center;padding:11px">Sign in</button>
             </form>
             <p class="muted small" style="margin-top:20px">Forgotten your password? Ask a Super Administrator to reset it.</p>
+            <p class="small" style="margin-top:8px"><a href="{{ route('downloads.index') }}">Download the mobile app</a></p>
         </div>
     </div>
 </div>

@@ -4,8 +4,10 @@ namespace App\Providers;
 
 use App\Services\Calls\LiveKitTokenService;
 use App\Services\Otp\LogOtpSender;
+use App\Services\Otp\NullOtpSender;
 use App\Services\Otp\OtpSenderInterface;
 use App\Services\Otp\SmsOtpSender;
+use App\Services\Otp\TermiiOtpSender;
 use App\Services\Push\HttpPushSender;
 use App\Services\Push\LogPushSender;
 use App\Services\Push\PushSenderInterface;
@@ -41,6 +43,8 @@ class AppServiceProvider extends ServiceProvider
 
             return match ($driver) {
                 'sms' => new SmsOtpSender($app->make(HttpFactory::class), (array) config('services.sms', [])),
+                'termii' => new TermiiOtpSender($app->make(HttpFactory::class), (array) config('services.termii', [])),
+                'none' => new NullOtpSender,
                 default => new LogOtpSender,
             };
         });

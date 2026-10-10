@@ -3,6 +3,7 @@
 use App\Http\Controllers\Admin\AccountController;
 use App\Http\Controllers\Admin\AdministratorController;
 use App\Http\Controllers\Admin\AnnouncementController;
+use App\Http\Controllers\Admin\AppReleaseController;
 use App\Http\Controllers\Admin\AuditController;
 use App\Http\Controllers\Admin\AuthController;
 use App\Http\Controllers\Admin\ChannelAdminController;
@@ -16,9 +17,18 @@ use App\Http\Controllers\Admin\ReportController;
 use App\Http\Controllers\Admin\RoleController;
 use App\Http\Controllers\Admin\SettingsController;
 use App\Http\Controllers\Admin\SystemController;
+use App\Http\Controllers\DownloadController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', fn () => redirect()->route('admin.login'));
+
+// --- Public mobile app downloads (no sign-in) ---------------------------------
+Route::prefix('download')->name('downloads.')->middleware('admin.headers')->group(function () {
+    Route::get('/', [DownloadController::class, 'index'])->name('index');
+    Route::get('latest.json', [DownloadController::class, 'latest'])->name('latest')->middleware('throttle:60,1');
+    Route::get('android/{variant}', [DownloadController::class, 'android'])->name('android')
+        ->whereIn('variant', ['standard', 'legacy'])->middleware('throttle:30,1');
+});
 
 // --- NISconnect Administration Portal ----------------------------------------
 // Session auth + per-route permissions (perm:). See App\Support\AdminPermissions.
@@ -146,5 +156,11 @@ Route::prefix('admin')->name('admin.')->middleware('admin.headers')->group(funct
         Route::get('settings', [SettingsController::class, 'index'])->name('settings.index')->middleware('perm:settings.manage');
         Route::put('settings', [SettingsController::class, 'update'])->name('settings.update')->middleware('perm:settings.manage');
         Route::get('system', [SystemController::class, 'index'])->name('system.index')->middleware('perm:system.view');
+        Route::middleware('perm:downloads.manage')->group(function () {
+            Route::get('downloads', [AppReleaseController::class, 'index'])->name('downloads.index');
+            Route::post('downloads', [AppReleaseController::class, 'store'])->name('downloads.store');
+            Route::post('downloads/{release}/toggle', [AppReleaseController::class, 'togglePublished'])->name('downloads.toggle');
+            Route::delete('downloads/{release}', [AppReleaseController::class, 'destroy'])->name('downloads.destroy');
+        });
     });
 });

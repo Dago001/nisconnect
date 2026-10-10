@@ -11,7 +11,8 @@
 #
 # RUN_MIGRATIONS (default true) and RUN_SEEDERS (default true) keep the Render
 # test deployment's behaviour: migrate and run the idempotent base seeders on
-# every start.
+# every start. RUN_SCHEDULER=true also runs the Laravel scheduler in the
+# background (single-container hosts such as Render).
 set -e
 cd /var/www/html
 
@@ -28,6 +29,13 @@ case "$APP_KEY" in
        export APP_KEY ;;
 esac
 
+# Render gives every service its public address; use it unless APP_URL is set
+# (e.g. after adding a custom domain).
+if [ -z "$APP_URL" ] && [ -n "$RENDER_EXTERNAL_URL" ]; then
+    APP_URL="$RENDER_EXTERNAL_URL"
+    export APP_URL
+fi
+
 php artisan package:discover --ansi
 
 if [ "$#" -eq 0 ] && [ "${RUN_MIGRATIONS:-true}" = "true" ]; then
@@ -36,6 +44,12 @@ if [ "$#" -eq 0 ] && [ "${RUN_MIGRATIONS:-true}" = "true" ]; then
     else
         php artisan migrate --force
     fi
+fi
+
+# First Super Administrator from NIS_ADMIN_* (Render blueprint). No-op when
+# those are unset or the account already has a password.
+if [ "$#" -eq 0 ]; then
+    php artisan nis:create-admin --from-env
 fi
 
 php artisan config:cache
@@ -54,5 +68,15 @@ fi
 
 sed -ri "s/^Listen .*/Listen ${PORT:-8080}/" /etc/apache2/ports.conf
 sed -ri "s/<VirtualHost \*:[0-9]+>/<VirtualHost *:${PORT:-8080}>/" /etc/apache2/sites-available/000-default.conf
+
+# Single-container hosts (Render) have no separate scheduler service: run
+# `schedule:work` alongside Apache when RUN_SCHEDULER=true.
+if [ "${RUN_SCHEDULER:-false}" = "true" ]; then
+    if [ "$(id -u)" = "0" ]; then
+        su -s /bin/sh www-data -c 'php artisan schedule:work' &
+    else
+        php artisan schedule:work &
+    fi
+fi
 
 exec apache2-foreground

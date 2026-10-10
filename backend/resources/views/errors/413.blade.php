@@ -1,0 +1,1 @@
+@include('errors.layout', ['code' => '413', 'title' => 'Upload too large', 'message' => 'The server accepts uploads of up to '.ini_get('post_max_size').' at a time, so the file was not received. Ask your system administrator to raise PHP\'s upload_max_filesize and post_max_size, or upload a smaller file.'])

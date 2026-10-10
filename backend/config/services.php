@@ -41,6 +41,14 @@ return [
         'sender_id' => env('SMS_SENDER_ID', 'NISconnect'),
     ],
 
+    // Termii SMS gateway (OTP_DRIVER=termii). Sender ID must be approved by Termii.
+    'termii' => [
+        'base_url' => env('TERMII_BASE_URL', 'https://v3.api.termii.com'),
+        'key' => env('TERMII_API_KEY'),
+        'sender_id' => env('TERMII_SENDER_ID', 'NISconnect'),
+        'channel' => env('TERMII_CHANNEL', 'dnd'),
+    ],
+
     'livekit' => [
         'host' => env('LIVEKIT_HOST'),
         'api_key' => env('LIVEKIT_API_KEY'),
