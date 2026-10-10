@@ -21,13 +21,13 @@ class OtpDeliveryOptionsTest extends TestCase
         $this->seed();
     }
 
-    private function startOnboarding(): array
+    private function startOnboarding(string $phone): array
     {
         $v = $this->postJson('/api/v1/auth/verify-service-number', ['service_number' => '123456'])->assertOk();
 
         return $this->postJson('/api/v1/auth/confirm-identity', [
             'verification_id' => $v->json('verification_id'),
-            'phone' => '08031234567',
+            'phone' => $phone,
         ])->assertOk()->json();
     }
 
@@ -42,10 +42,10 @@ class OtpDeliveryOptionsTest extends TestCase
         $this->app['env'] = 'production';
         config(['otp.expose_in_response' => true, 'otp.onboarding_show_code' => false, 'otp.driver' => 'none']);
         $this->app->forgetInstance(OtpSenderInterface::class);
-        $this->assertArrayNotHasKey('debug_code', $this->startOnboarding());
+        $this->assertArrayNotHasKey('debug_code', $this->startOnboarding('08031234567'));
 
         config(['otp.onboarding_show_code' => true]);
-        $this->assertMatchesRegularExpression('/^\d{6}$/', $this->startOnboarding()['debug_code']);
+        $this->assertMatchesRegularExpression('/^\d{6}$/', $this->startOnboarding('08039876543')['debug_code']);
     }
 
     public function test_none_driver_sends_nothing(): void
