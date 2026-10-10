@@ -1,12 +1,12 @@
-import 'dart:io' show Platform;
-
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../core/platform/client_platform.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_typography.dart';
+import '../../../shared/widgets/server_settings_dialog.dart';
 import '../../../shared/widgets/primary_button.dart';
 import '../../../shared/widgets/service_number_field.dart';
 import '../domain/personnel_record.dart';
@@ -86,6 +86,8 @@ class _ServiceNumberStepState extends ConsumerState<_ServiceNumberStep> {
           loading: state.loading,
           onPressed: () => notifier.verifyServiceNumber(_controller.text),
         ),
+        const SizedBox(height: 8),
+        const Center(child: ServerAddressButton()),
       ],
     );
   }
@@ -201,6 +203,11 @@ class _OtpStepState extends ConsumerState<_OtpStep> {
         const SizedBox(height: 8),
         Text('Sent to ${widget.phone}',
             style: AppTypography.body.copyWith(color: AppColors.neutralGrey)),
+        if (state.testCode != null) ...[
+          const SizedBox(height: 8),
+          Text('Test server (no SMS): your code is ${state.testCode}',
+              style: AppTypography.body.copyWith(color: AppColors.primaryGreen)),
+        ],
         const SizedBox(height: 24),
         TextField(
           controller: _controller,
@@ -230,10 +237,7 @@ class _PinStep extends ConsumerStatefulWidget {
 class _PinStepState extends ConsumerState<_PinStep> {
   final _pin = TextEditingController();
 
-  Map<String, dynamic> _device() => {
-        'name': Platform.isIOS ? 'iPhone' : 'Android device',
-        'platform': Platform.isIOS ? 'ios' : 'android',
-      };
+  Map<String, dynamic> _device() => ClientPlatform.device;
 
   @override
   Widget build(BuildContext context) {

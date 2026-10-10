@@ -29,6 +29,8 @@
         <env name="DB_USERNAME" value="postgres"/>
         <env name="DB_PASSWORD" value=""/>
         <env name="PERSONNEL_PROVIDER" value="demo"/>
+        <env name="PERSONNEL_DEMO_ACCEPT_ANY" value="false"/>
+        <env name="BROADCAST_CONNECTION" value="log"/>
         <env name="OTP_DRIVER" value="log"/>
         <env name="OTP_EXPOSE_IN_RESPONSE" value="true"/>
         <env name="LIVEKIT_HOST" value="ws://livekit.test"/>

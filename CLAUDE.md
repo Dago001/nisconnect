@@ -37,7 +37,7 @@ php artisan serve         # http://127.0.0.1:8000  (admin portal at /admin/login
 - Demo Service Numbers (dev provider): `123456`, `001234`, `654321`. `999999` = retired
   (found but not authorised). OTP codes are returned as `debug_code` in non-production.
 
-## Mobile — how to run & test (needs Flutter SDK, not present in cloud sessions)
+## Mobile — how to run & test (Android, iOS, web; needs Flutter SDK, not preinstalled in cloud sessions)
 ```bash
 cd mobile
 flutter pub get

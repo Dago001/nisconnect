@@ -14,6 +14,8 @@ use App\Http\Resources\UserResource;
 use App\Models\Device;
 use App\Models\User;
 use App\Personnel\PersonnelSourceUnavailableException;
+use App\Services\Admin\SettingsService;
+use App\Services\Auth\DeviceLimitService;
 use App\Services\Auth\OnboardingService;
 use App\Services\Auth\PersonnelVerificationService;
 use App\Services\Auth\RecoveryService;
@@ -32,6 +34,8 @@ class AuthController extends Controller
         private readonly OnboardingService $onboarding,
         private readonly RecoveryService $recovery,
         private readonly AuditLogger $audit,
+        private readonly SettingsService $settings,
+        private readonly DeviceLimitService $deviceLimit,
     ) {}
 
     /**
@@ -42,6 +46,18 @@ class AuthController extends Controller
     public function verifyServiceNumber(VerifyServiceNumberRequest $request): JsonResponse
     {
         $serviceNumber = $request->validated('service_number');
+
+        // Registration can be closed by an administrator. Officers who already
+        // have an account are unaffected (they sign in or use recovery).
+        if (! $this->settings->get('registration_open')
+            && ! User::where('service_number', $serviceNumber)->exists()) {
+            $this->audit->log('service_number.verify_refused', resourceType: 'personnel_record',
+                result: 'denied', metadata: ['service_number' => $serviceNumber, 'reason' => 'registration_closed']);
+
+            return response()->json([
+                'message' => OnboardingService::REGISTRATION_CLOSED_MESSAGE,
+            ], 403);
+        }
 
         try {
             $record = $this->personnel->lookup($serviceNumber);
@@ -205,6 +221,7 @@ class AuthController extends Controller
             ['last_active_at' => Carbon::now(), 'status' => Device::STATUS_ACTIVE],
         );
         $device->update(['last_active_at' => Carbon::now(), 'status' => Device::STATUS_ACTIVE]);
+        $this->deviceLimit->enforce($user, $device);
 
         $token = $user->createToken($data['device']['name'], ['officer']);
         $token->accessToken->forceFill(['device_id' => $device->id])->save();

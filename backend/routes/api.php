@@ -44,6 +44,7 @@ Route::prefix('v1')->group(function () {
         Route::get('users/me', [UserController::class, 'me']);
         Route::patch('users/me', [UserController::class, 'update']);
         Route::put('users/me/privacy', [UserController::class, 'updatePrivacy']);
+        Route::put('users/me/pin', [UserController::class, 'updatePin'])->middleware('throttle:login');
         Route::put('users/me/presence', [UserController::class, 'updatePresence']);
 
         Route::get('directory/search', [DirectoryController::class, 'search'])

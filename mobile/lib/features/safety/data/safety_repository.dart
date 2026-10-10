@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/network/api_client.dart';
+import '../../../core/session/session.dart';
 
 class BlockedOfficer {
   BlockedOfficer({required this.id, required this.serviceNumber, required this.displayName});
@@ -47,5 +48,6 @@ final safetyRepositoryProvider = Provider<SafetyRepository>((ref) {
 });
 
 final blockedOfficersProvider = FutureProvider<List<BlockedOfficer>>((ref) {
+  if (ref.watch(sessionServiceNumberProvider) == null) return Future.value(const []);
   return ref.watch(safetyRepositoryProvider).blocked();
 });

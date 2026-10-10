@@ -9,12 +9,22 @@ import '../storage/secure_storage.dart';
 class ApiException implements Exception {
   ApiException(this.message, {this.statusCode, this.errors});
 
+  /// True when no response came back at all (offline, wrong address, server down).
+  bool get isUnreachable => statusCode == null;
+
   final String message;
   final int? statusCode;
   final Map<String, dynamic>? errors;
 
   @override
   String toString() => message;
+}
+
+/// Shown when the request never reached the server.
+String unreachableMessage() {
+  final host = Uri.tryParse(AppConfig.serverRoot)?.host ?? AppConfig.serverRoot;
+  return "Can't reach the NISconnect server ($host). Check your internet "
+      'connection, or change the server address under "Server address".';
 }
 
 /// Configured Dio instance: attaches the bearer token, normalises errors, and
@@ -61,13 +71,17 @@ class ApiClient {
       _wrap(() => _dio.delete<T>(path, data: data));
 
   Future<Response<T>> _wrap<T>(Future<Response<T>> Function() call) async {
+    // Picks up a server address changed in settings without a restart.
+    _dio.options.baseUrl = AppConfig.apiBaseUrl;
     try {
       return await call();
     } on DioException catch (e) {
       final data = e.response?.data;
       final message = (data is Map && data['message'] is String)
           ? data['message'] as String
-          : 'A network error occurred. Please try again.';
+          : e.response == null
+              ? unreachableMessage()
+              : 'Something went wrong on the server (${e.response?.statusCode}). Please try again.';
       throw ApiException(
         message,
         statusCode: e.response?.statusCode,

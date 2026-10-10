@@ -5,11 +5,15 @@ namespace App\Http\Controllers\Api\V1;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\UserResource;
 use App\Models\User;
+use App\Services\Support\AuditLogger;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Hash;
 
 class UserController extends Controller
 {
+    public function __construct(private readonly AuditLogger $audit) {}
+
     public function me(Request $request): UserResource
     {
         return new UserResource($request->user()->load('personnelRecord'));
@@ -23,6 +27,32 @@ class UserController extends Controller
         $request->user()->update($data);
 
         return new UserResource($request->user()->fresh()->load('personnelRecord'));
+    }
+
+    /**
+     * Change the sign-in PIN. Requires the current PIN; other devices stay
+     * signed in (they can be revoked separately under My Devices).
+     */
+    public function updatePin(Request $request): JsonResponse
+    {
+        $data = $request->validate([
+            'current_pin' => ['required', 'string'],
+            'new_pin' => ['required', 'string', 'min:4', 'max:12', 'regex:/^[0-9]+$/', 'different:current_pin'],
+        ]);
+
+        $user = $request->user();
+        if (! $user->pin_hash || ! Hash::check($data['current_pin'], $user->pin_hash)) {
+            return response()->json([
+                'message' => 'Your current PIN is incorrect.',
+                'errors' => ['current_pin' => ['Your current PIN is incorrect.']],
+            ], 422);
+        }
+
+        $user->forceFill(['pin_hash' => Hash::make($data['new_pin'])])->save();
+        $this->audit->log('auth.pin_changed', actorId: $user->id, resourceType: 'user', resourceId: $user->id);
+        $this->audit->security('pin_changed', userId: $user->id, severity: 'info');
+
+        return response()->json(['message' => 'PIN changed.']);
     }
 
     public function updatePresence(Request $request): JsonResponse

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/session/session.dart';
 import '../data/chat_repository.dart';
 
 /// Bottom sheet of actions for a message: copy, edit (own text), pin, forward,
@@ -112,6 +113,7 @@ class MessageActionsSheet extends ConsumerWidget {
 
   Future<String?> _pickConversation(BuildContext context, WidgetRef ref) async {
     final chats = await ref.read(chatRepositoryProvider).chats();
+    final meId = ref.read(meProvider).valueOrNull?['id'] as String?;
     if (!context.mounted) return null;
     return showModalBottomSheet<String>(
       context: context,
@@ -119,7 +121,7 @@ class MessageActionsSheet extends ConsumerWidget {
         children: [
           for (final c in chats)
             ListTile(
-              title: Text(c.title ?? 'Direct chat'),
+              title: Text(c.displayTitle(meId)),
               onTap: () => Navigator.pop(context, c.id),
             ),
         ],

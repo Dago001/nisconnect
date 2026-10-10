@@ -23,6 +23,7 @@ with no internal detail. Onboarding, OTP, login and directory routes are rate li
 | POST | `/auth/logout` | Revokes current token. |
 | GET | `/users/me` | Current officer + personnel fields. |
 | PATCH | `/users/me` | Update display name. |
+| PUT | `/users/me/pin` `{current_pin, new_pin}` | Change sign-in PIN (wrong current PIN → 422; audited; rate limited). |
 | PUT | `/users/me/privacy` | Per-key `everyone|contacts|nobody` (enforced server-side). |
 | PUT | `/users/me/presence` `{presence}` | Set online/offline/away + last-seen. |
 
@@ -31,7 +32,7 @@ with no internal detail. Onboarding, OTP, login and directory routes are rate li
 | GET | `/directory/{serviceNumber}` | Single officer card. |
 
 ## Chats & messages (bearer)
-| GET | `/chats` | Conversations for the user. |
+| GET | `/chats` | Conversations for the user, with `members` and a `last_message` preview. |
 | POST | `/chats` `{service_number}` | Start/resume a direct chat. |
 | GET | `/chats/{conversation}` | Conversation + members. |
 | GET | `/chats/{conversation}/messages?cursor=` | Cursor-paginated (newest first) + `next_cursor`. |

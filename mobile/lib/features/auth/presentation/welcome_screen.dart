@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_typography.dart';
+import '../../../shared/widgets/server_settings_dialog.dart';
 import '../../../shared/widgets/primary_button.dart';
 
 /// Welcome screen with NIS branding and entry points.
@@ -52,6 +53,8 @@ class WelcomeScreen extends StatelessWidget {
                     style: OutlinedButton.styleFrom(minimumSize: const Size.fromHeight(48)),
                     child: const Text('I already have an account'),
                   ),
+                  const SizedBox(height: 4),
+                  const Center(child: ServerAddressButton()),
                 ],
               ),
             ),

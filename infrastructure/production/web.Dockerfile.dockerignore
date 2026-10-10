@@ -1,0 +1,16 @@
+# Build context for web.Dockerfile is the repo root; send only what it needs.
+**
+!mobile/**
+!infrastructure/production/Caddyfile
+!infrastructure/production/web/**
+mobile/build/
+mobile/.dart_tool/
+mobile/.flutter-plugins
+mobile/.flutter-plugins-dependencies
+mobile/android/.gradle/
+mobile/android/local.properties
+mobile/android/key.properties
+mobile/android/**/*.jks
+mobile/android/**/*.keystore
+mobile/ios/Pods/
+mobile/ios/Flutter/ephemeral/

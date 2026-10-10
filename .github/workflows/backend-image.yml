@@ -1,0 +1,68 @@
+name: Backend image
+
+# Builds the production Docker image used by render.yaml and boots it against
+# Postgres with the same settings as the Render test deployment, so a broken
+# image is caught before Render tries to deploy it.
+on:
+  push:
+    branches: ["**"]
+    paths: ["backend/**", "render.yaml", ".github/workflows/backend-image.yml"]
+  pull_request:
+    paths: ["backend/**", "render.yaml", ".github/workflows/backend-image.yml"]
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_DB: nisconnect
+          POSTGRES_USER: nisconnect
+          POSTGRES_PASSWORD: secret
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U nisconnect"
+          --health-interval 5s --health-timeout 5s --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build image
+        run: docker build -t nisconnect-api backend
+
+      - name: Start container
+        run: |
+          docker run -d --name api --network host \
+            -e PORT=8080 -e APP_ENV=staging -e APP_DEBUG=false -e APP_KEY=ci-secret \
+            -e LOG_CHANNEL=stderr -e TRUSTED_PROXIES='*' \
+            -e DB_CONNECTION=pgsql \
+            -e DB_URL=postgresql://nisconnect:secret@127.0.0.1:5432/nisconnect \
+            -e SESSION_DRIVER=database -e CACHE_STORE=database -e QUEUE_CONNECTION=sync \
+            -e BROADCAST_CONNECTION=log -e PERSONNEL_PROVIDER=demo \
+            -e OTP_DRIVER=log -e OTP_EXPOSE_IN_RESPONSE=true -e PUSH_DRIVER=log \
+            nisconnect-api
+
+      - name: Wait for health check
+        run: |
+          for i in $(seq 1 60); do
+            curl -fsS http://127.0.0.1:8080/up >/dev/null && exit 0
+            sleep 2
+          done
+          docker logs api; exit 1
+
+      - name: Onboarding smoke test
+        run: |
+          set -e
+          V=$(curl -fsS -X POST http://127.0.0.1:8080/api/v1/auth/verify-service-number \
+                -H 'Accept: application/json' -H 'Content-Type: application/json' \
+                -d '{"service_number":"123456"}')
+          echo "$V"
+          ID=$(echo "$V" | jq -r .verification_id)
+          C=$(curl -fsS -X POST http://127.0.0.1:8080/api/v1/auth/confirm-identity \
+                -H 'Accept: application/json' -H 'Content-Type: application/json' \
+                -d "{\"verification_id\":\"$ID\",\"phone\":\"08031234567\"}")
+          echo "$C" | jq -e '.debug_code'
+
+      - name: Container logs
+        if: always()
+        run: docker logs api || true

@@ -73,7 +73,7 @@ class RealtimeService {
     // Reverb is self-hosted, so the endpoint is built from an explicit
     // host/port rather than a Pusher cluster: {scheme}://{host}:{port}/app/{key}
     final client = PusherChannelsClient.websocket(
-      options: const PusherChannelsOptions.fromHost(
+      options: PusherChannelsOptions.fromHost(
         scheme: AppConfig.wsScheme,
         host: AppConfig.wsHost,
         port: AppConfig.wsPort,

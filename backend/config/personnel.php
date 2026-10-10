@@ -12,6 +12,11 @@ return [
     */
     'provider' => env('PERSONNEL_PROVIDER', 'demo'),
 
+    // Test deployments only: let the demo provider invent an active record for
+    // any well-formed Service Number, so testers can register with their own.
+    // Ignored outside the demo provider, which itself refuses production.
+    'demo_accept_any' => (bool) env('PERSONNEL_DEMO_ACCEPT_ANY', false),
+
     /*
     |--------------------------------------------------------------------------
     | Service Number rules (configurable, not hard-coded)
@@ -20,7 +25,9 @@ return [
     | Leave 'length' null to use the min/max range.
     */
     'service_number' => [
-        'length' => env('PERSONNEL_SERVICE_NUMBER_LENGTH') !== null
+        // filled(): an empty `PERSONNEL_SERVICE_NUMBER_LENGTH=` (as shipped in
+        // .env.example) means "use the range", not "exactly 0 digits".
+        'length' => filled(env('PERSONNEL_SERVICE_NUMBER_LENGTH'))
             ? (int) env('PERSONNEL_SERVICE_NUMBER_LENGTH')
             : null,
         'min' => (int) env('PERSONNEL_SERVICE_NUMBER_MIN', 4),

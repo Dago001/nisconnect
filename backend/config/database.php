@@ -97,6 +97,24 @@ return [
             'sslmode' => 'prefer',
         ],
 
+        // Read-only connection to the authorised NIS personnel database, used
+        // when PERSONNEL_PROVIDER=database (see config/personnel.php and
+        // docs/PERSONNEL_INTEGRATION.md). Give it a read-only account.
+        'nis_personnel' => [
+            'driver' => env('PERSONNEL_DB_DRIVER', 'pgsql'),
+            'url' => env('PERSONNEL_DB_URL'),
+            'host' => env('PERSONNEL_DB_HOST', '127.0.0.1'),
+            'port' => env('PERSONNEL_DB_PORT', '5432'),
+            'database' => env('PERSONNEL_DB_DATABASE', 'personnel'),
+            'username' => env('PERSONNEL_DB_USERNAME', ''),
+            'password' => env('PERSONNEL_DB_PASSWORD', ''),
+            'charset' => env('PERSONNEL_DB_CHARSET', 'utf8'),
+            'prefix' => '',
+            'prefix_indexes' => true,
+            'search_path' => env('PERSONNEL_DB_SCHEMA', 'public'),
+            'sslmode' => env('PERSONNEL_DB_SSLMODE', 'prefer'),
+        ],
+
         'sqlsrv' => [
             'driver' => 'sqlsrv',
             'url' => env('DB_URL'),
