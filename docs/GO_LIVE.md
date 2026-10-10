@@ -409,9 +409,18 @@ your *upload* key; if it is lost, Google support can reset it, but it takes time
 | `ANDROID_KEY_ALIAS` | `upload` |
 | `ANDROID_KEY_PASSWORD` | the key password (same as the keystore password if you did not choose another) |
 
-Then publish a release as described in Part 6. You get `nisconnect-vX.Y.Z.aab` (for Play)
-and `nisconnect-vX.Y.Z.apk` (for direct installation). Without the secrets the files end in
-`-debug-signed` and Google Play will reject them.
+Then publish a release as described in Part 6. You get `nisconnect-vX.Y.Z.aab` (for Play),
+`nisconnect-vX.Y.Z.apk` (for direct installation on almost every phone) and
+`nisconnect-vX.Y.Z-older-phones.apk` (for old 32-bit phones). Without the secrets the files
+end in `-debug-signed` and Google Play will reject them. Keep the `-debug-symbols.zip` file:
+it turns obfuscated crash reports back into readable ones.
+
+**About app size.** A single "universal" APK carries the app's native code (the Flutter
+engine, the WebRTC calling engine, SQLite) three times, once per CPU type, which made the
+early test APK about 100 MB. The builds now produce one APK per CPU type, compress the
+native code and obfuscate the Dart code, so each APK is a fraction of that. On Google Play
+use the `.aab`: Play builds a download for each phone containing only what that phone
+needs, so most users download less than either APK.
 
 **Option B — on your own computer** with Flutter and Android Studio: create
 `mobile/android/key.properties`:
@@ -425,11 +434,17 @@ keyPassword=...
 
 ```bash
 cd mobile
-flutter build appbundle --release \
+flutter build appbundle --release --obfuscate --split-debug-info=build/symbols \
   --dart-define=API_BASE_URL=https://YOUR-DOMAIN/api/v1 \
   --dart-define=WS_HOST=YOUR-DOMAIN --dart-define=WS_PORT=443 --dart-define=WS_SCHEME=wss
 # result: build/app/outputs/bundle/release/app-release.aab
 ```
+
+For APKs to install directly, use `flutter build apk --release --split-per-abi
+--target-platform android-arm,android-arm64 --obfuscate --split-debug-info=build/symbols`
+with the same `--dart-define` values. Give people `app-arm64-v8a-release.apk`; use
+`app-armeabi-v7a-release.apk` only for old 32-bit phones. Never hand out the single
+universal APK.
 
 Release builds only allow HTTPS connections.
 
@@ -467,7 +482,8 @@ The workflow `.github/workflows/release.yml` builds the web app, Android and iOS
    ```
 
 3. Watch **Actions > Release**. When it finishes, **Releases > v1.0.0** holds:
-   `nisconnect-web-v1.0.0.zip`, `nisconnect-v1.0.0.apk`, `nisconnect-v1.0.0.aab` and, if iOS
+   `nisconnect-web-v1.0.0.zip`, `nisconnect-v1.0.0.apk`, `nisconnect-v1.0.0-older-phones.apk`,
+   `nisconnect-v1.0.0.aab`, `nisconnect-v1.0.0-debug-symbols.zip` and, if iOS
    signing is set up, `nisconnect-v1.0.0.ipa`.
 
 You can also run it by hand (Actions > Release > Run workflow) and type a `server_url`; the

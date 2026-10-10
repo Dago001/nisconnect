@@ -71,6 +71,15 @@ android {
         }
     }
 
+    // Store native libraries compressed inside the APK. Flutter, WebRTC and
+    // SQLite ship ~30 MB of .so files per CPU type; compressing them roughly
+    // halves the download for sideloaded APKs (Play compresses bundles itself).
+    packaging {
+        jniLibs {
+            useLegacyPackaging = true
+        }
+    }
+
     buildTypes {
         release {
             signingConfig = signingConfigs.findByName("release") ?: signingConfigs.getByName("debug")

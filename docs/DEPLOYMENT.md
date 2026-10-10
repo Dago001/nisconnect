@@ -86,8 +86,8 @@ In the production stack, `infrastructure/production/backup.sh` implements the ni
   service and executes the test suite on every push/PR.
 - `.github/workflows/backend-image.yml` builds `backend/Dockerfile` and smoke-tests it.
 - `.github/workflows/mobile.yml` analyses/tests the Flutter app and builds web, a preview
-  APK and an iOS simulator build.
+  per-CPU APKs (arm64 + older 32-bit phones) and an iOS simulator build.
 - `.github/workflows/release.yml` (tags `v*` or manual with `server_url`) builds the web zip,
-  signed Android APK + AAB (debug-signed when the keystore secrets are absent) and a signed
+  signed per-CPU Android APKs + AAB (debug-signed when the keystore secrets are absent) and a signed
   iOS `.ipa` (unsigned `Runner.app` build when the Apple secrets are absent), and attaches
   them to a GitHub Release. Secrets are listed at the top of the workflow and in GO_LIVE.md.

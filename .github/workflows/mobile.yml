@@ -75,11 +75,18 @@ jobs:
           flutter-version: ${{ env.FLUTTER_VERSION }}
           cache: true
       - run: flutter pub get
-      - run: flutter build apk --release $BACKEND_DEFINES
+      # One APK per CPU type instead of one "fat" APK holding all three:
+      # arm64 covers almost every phone in use; armeabi-v7a is for old 32-bit
+      # phones. --obfuscate also shrinks the Dart code (symbols kept aside).
+      - run: >-
+          flutter build apk --release --split-per-abi --target-platform android-arm,android-arm64
+          --obfuscate --split-debug-info=build/symbols $BACKEND_DEFINES
+      - name: APK sizes
+        run: ls -l build/app/outputs/flutter-apk/*.apk | tee -a "$GITHUB_STEP_SUMMARY"
       - uses: actions/upload-artifact@v4
         with:
           name: nisconnect-android-apk
-          path: mobile/build/app/outputs/flutter-apk/app-release.apk
+          path: mobile/build/app/outputs/flutter-apk/app-*-release.apk
       # Installable APK for testers: a GitHub pre-release always holds the
       # latest build (Releases > "NISconnect Android preview"). Not on PRs, so
       # forks can't overwrite it.
@@ -88,11 +95,12 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          cp build/app/outputs/flutter-apk/app-release.apk nisconnect.apk
+          cp build/app/outputs/flutter-apk/app-arm64-v8a-release.apk nisconnect.apk
+          cp build/app/outputs/flutter-apk/app-armeabi-v7a-release.apk nisconnect-older-phones.apk
           gh release delete android-preview --yes --cleanup-tag || true
-          gh release create android-preview nisconnect.apk --prerelease \
+          gh release create android-preview nisconnect.apk nisconnect-older-phones.apk --prerelease \
             --target "$GITHUB_SHA" --title "NISconnect Android preview" \
-            --notes "Test build from ${GITHUB_REF_NAME} @ ${GITHUB_SHA::7}. Signed with a debug key; for testing only."
+            --notes "Test build from ${GITHUB_REF_NAME} @ ${GITHUB_SHA::7}. Signed with a debug key; for testing only. nisconnect.apk fits almost every phone; nisconnect-older-phones.apk is for old 32-bit phones."
 
   ios:
     runs-on: macos-latest
