@@ -25,7 +25,9 @@ plugins {
     // have locally. flutter_callkit_incoming requires exactly Java 17, so a
     // machine with only a newer JDK (Android Studio ships 21) otherwise fails
     // with "Cannot find a Java installation ... matching {languageVersion=17}".
-    id("org.gradle.toolchains.foojay-resolver-convention") version "0.8.0"
+    // 1.0.0 is the first release that works with Gradle 9; 0.8.0 fails with
+    // "Could not initialize class org.gradle.toolchains.foojay.DistributionsKt".
+    id("org.gradle.toolchains.foojay-resolver-convention") version "1.0.0"
 }
 
 include(":app")
