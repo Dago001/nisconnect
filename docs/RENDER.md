@@ -89,7 +89,11 @@ address such as `apps.immigration.gov.ng`? Do Part F1 first.
     `https://YOUR-ADDRESS` (no slash at the end). Save. (Or just tell Claude the address.)
 20. Start a new build: **Actions → Mobile & Web CI → Run workflow** (main branch) → **Run**.
     When it is green, open **Releases → NISconnect Android preview** and download
-    `nisconnect.apk` and `nisconnect-older-phones.apk`.
+    `nisconnect.apk` and `nisconnect-older-phones.apk`. (No release there? Open the run and
+    download **nisconnect-android-apk** under **Artifacts**, then unzip it:
+    `app-arm64-v8a-release.apk` is the 64-bit app, `app-armeabi-v7a-release.apk` the
+    older-phones one. To get the release back, set **Settings → Actions → General →
+    Workflow permissions** to **Read and write**.)
 21. Portal → **App downloads** → upload `nisconnect.apk` as **64-bit phones (recommended)**
     and `nisconnect-older-phones.apk` as **Older 32-bit phones**, with the version (e.g.
     `1.0.0`).

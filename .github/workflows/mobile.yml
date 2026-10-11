@@ -105,8 +105,12 @@ jobs:
       # Installable APK for testers: a GitHub pre-release always holds the
       # latest build (Releases > "NISconnect Android preview"). Not on PRs, so
       # forks can't overwrite it.
+      # Needs Settings > Actions > General > Workflow permissions set to
+      # "Read and write". If GitHub refuses, the APKs are still in this run's
+      # Artifacts (nisconnect-android-apk), so the build stays green.
       - name: Publish preview APK
         if: github.event_name != 'pull_request'
+        continue-on-error: true
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
