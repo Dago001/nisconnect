@@ -566,8 +566,8 @@ nisconnect/
 | 18 | Production deployment prep (Docker, CI/CD, backups) | ✅ config |
 
 **Environment note for this build:** the Laravel backend + PostgreSQL run and are tested in
-CI/dev here. The Flutter app is written to spec but **cannot be compiled in this environment**
-(no Flutter SDK installed); it builds where a Flutter toolchain is present. External
+CI/dev here. The Flutter app has Android, iOS and web targets and builds against Flutter 3.47
+(stable); CI publishes an Android APK as the `android-preview` pre-release. External
 integrations (real NIS personnel source, SMS, FCM/APNs, LiveKit) run through adapters with
 development implementations and connect to production infrastructure via `.env` without code
 changes.

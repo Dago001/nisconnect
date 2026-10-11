@@ -20,9 +20,9 @@ that is verified against the authorised NIS personnel source before any account 
 
 ```
 nisconnect/
-├── backend/          Laravel 11 + PostgreSQL API (runs & tested)
-├── mobile/           Flutter (Android/iOS) app  (code; needs a Flutter SDK to build)
-├── admin/            Admin portal (Laravel/Blade)
+├── backend/          Laravel + PostgreSQL API, and the admin portal
+│                     (Laravel/Blade, server-rendered, at /admin/login)
+├── mobile/           Flutter app — Android, iOS and web targets
 ├── infrastructure/   Docker: dev stack + production/ (Caddy HTTPS, app, worker, Reverb, Postgres, Redis, backups)
 ├── docs/             Architecture, security, DB, API, design system, deployment
 ├── assets/           Provided NIS crest + HQ imagery (source of truth)
@@ -75,9 +75,9 @@ notifications** (FCM/APNs adapters + dispatch), and a **security test suite**
 
 See the roadmap in [docs/ARCHITECTURE.md §12](docs/ARCHITECTURE.md#12-development-roadmap)
 for full phase status. The **Flutter client** is written per the architecture (onboarding,
-chat, directory, calls scaffold) but builds on a machine with the Flutter SDK — it was not
-compiled in this environment. Remaining media-plane work (WebRTC device media, real
-FCM/APNs credentials) connects via the documented adapters without code changes.
+chat, directory, calls scaffold) and builds for Android, iOS and web; CI publishes an
+Android APK as the `android-preview` pre-release. Remaining media-plane work (WebRTC device
+media, real FCM/APNs credentials) connects via the documented adapters without code changes.
 
 ## Run the backend locally
 
