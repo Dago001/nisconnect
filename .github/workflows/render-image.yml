@@ -96,6 +96,29 @@ jobs:
       - name: Scheduler runs alongside Apache
         run: docker exec app sh -c 'ps aux | grep -v grep | grep -q "schedule:work"'
 
+      - name: Moving to a new address (APP_CANONICAL_URL)
+        run: |
+          set -ex
+          docker run -d --name moved --network host \
+            -e PORT=10001 -e APP_URL=https://connect.example.gov.ng -e APP_CANONICAL_URL=https://connect.example.gov.ng \
+            -e APP_ENV=production -e APP_DEBUG=false -e APP_KEY=ci-secret -e LOG_CHANNEL=stderr -e TRUSTED_PROXIES='*' \
+            -e DB_CONNECTION=pgsql -e DB_URL=postgresql://nisconnect:secret@127.0.0.1:5432/nisconnect \
+            -e SESSION_DRIVER=database -e CACHE_STORE=database -e QUEUE_CONNECTION=sync -e BROADCAST_CONNECTION=log \
+            -e PERSONNEL_PROVIDER=database -e PERSONNEL_DB_CONNECTION=pgsql -e PERSONNEL_DB_TABLE=personnel_records \
+            -e OTP_DRIVER=none -e PUSH_DRIVER=log -e MAIL_MAILER=log \
+            nisconnect-render
+          for i in $(seq 1 60); do curl -fsS http://127.0.0.1:10001/up >/dev/null && break; sleep 2; done
+          M=http://127.0.0.1:10001
+          # Browsers on the old address are sent to the new one...
+          curl -sI -H 'Host: apps.example.gov.ng' $M/ | tee /dev/stderr | grep -qi '^location: https://connect.example.gov.ng/'
+          curl -sI -H 'Host: apps.example.gov.ng' "$M/admin/login?x=1" | grep -qi '^location: https://connect.example.gov.ng/admin/login?x=1'
+          # ...while installed apps keep working there and learn the new address.
+          curl -fsS -H 'Host: apps.example.gov.ng' $M/api/v1/meta | jq -e '.moved_to == "https://connect.example.gov.ng"'
+          curl -fsS -H 'Host: apps.example.gov.ng' -o /dev/null $M/up
+          # The new address itself serves normally.
+          curl -fsS -H 'Host: connect.example.gov.ng' $M/ | grep -q flutter_bootstrap.js
+          docker rm -f moved
+
       - name: Container logs
         if: always()
         run: docker logs app 2>&1 | tail -200 || true

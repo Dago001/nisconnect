@@ -10,7 +10,7 @@ servers for you: no Linux, no commands, HTTPS included. Everything lives on one 
 | `https://YOUR-ADDRESS/admin` | the Super Admin portal |
 
 `YOUR-ADDRESS` is the address Render gives you, for example `nisconnect.onrender.com`, or your
-own domain (Part F).
+own domain such as `apps.immigration.gov.ng` (Part F).
 
 The setup is described in `render.production.yaml` at the top of the repository. The free test
 server (`render.yaml`) is separate and keeps working.
@@ -81,7 +81,8 @@ an account.
 
 ## Part E — Put the apps on the download page
 
-The Android app must know `YOUR-ADDRESS` so officers don't have to type it.
+The Android app must know `YOUR-ADDRESS` so officers don't have to type it. Using your own
+address such as `apps.immigration.gov.ng`? Do Part F1 first.
 
 19. On GitHub: **Dago001/nisconnect → Settings → Secrets and variables → Actions →
     Variables → New repository variable**. Name `LIVE_SERVER_URL`, value
@@ -100,15 +101,59 @@ The Android app must know `YOUR-ADDRESS` so officers don't have to type it.
 like an app. The download page explains this. An App Store version needs an Apple Developer
 account (docs/GO_LIVE.md, Part 7).
 
-## Part F — Your own domain (optional, do it before step 19)
+## Part F — Your own address: apps.immigration.gov.ng now, connect.immigration.gov.ng later
 
-23. Render service → **Settings → Custom Domains → Add** → e.g. `connect.immigration.gov.ng`.
-24. At your domain's DNS provider add the record Render shows (a CNAME to
-    `nisconnect.onrender.com`). Render issues the HTTPS certificate automatically.
-25. Render service → **Environment** → add `APP_URL` = `https://connect.immigration.gov.ng`
-    → **Save**.
-26. Use the new domain as `LIVE_SERVER_URL` (step 19). If you change domain after officers
-    installed the app, they must install the new APK (or change **Server address** in the app).
+Do F1 right after Part C and **before Part E**, so the Android app is built for your own
+address. F2 is for later, when you move to `connect.immigration.gov.ng`.
+
+`apps.immigration.gov.ng` must be used **only** for NISconnect (the app sits at the root of the
+address). If other NIS services already live on that address, use a different sub-domain, e.g.
+`nisconnect.immigration.gov.ng`; serving NISconnect under a path such as
+`apps.immigration.gov.ng/nisconnect` is not supported.
+
+### F1 — Start on https://apps.immigration.gov.ng
+
+23. Render service → **Settings → Custom Domains → Add Custom Domain** →
+    `apps.immigration.gov.ng` → **Save**. Render shows a DNS record to create.
+24. Ask whoever manages DNS for `immigration.gov.ng` (NIS ICT) to add it: a **CNAME** record,
+    name `apps`, value your Render address (e.g. `nisconnect.onrender.com`). If the domain
+    has **CAA** records, they must also allow `letsencrypt.org` and `pki.goog`, or the HTTPS
+    certificate can't be issued.
+25. Back in Render, click **Verify**. When it shows **Certificate issued**, open
+    `https://apps.immigration.gov.ng` — you should see NISconnect.
+26. Render service → **Environment** → add `APP_URL` = `https://apps.immigration.gov.ng` →
+    **Save** (the service restarts in about a minute).
+27. Continue with Part E using `https://apps.immigration.gov.ng` as `LIVE_SERVER_URL`. The
+    download page for officers is then `https://apps.immigration.gov.ng/download`.
+
+### F2 — Move to https://connect.immigration.gov.ng (when ready)
+
+Nobody has to reinstall anything: the same Render service answers on both addresses during
+the move, the website redirects browsers, and the apps switch over by themselves.
+
+28. Render service → **Settings → Custom Domains → Add Custom Domain** →
+    `connect.immigration.gov.ng`. Keep `apps.immigration.gov.ng` in the list.
+29. DNS: add a **CNAME** `connect` → your Render address (same as step 24). Wait for
+    **Certificate issued** and check `https://connect.immigration.gov.ng` opens NISconnect.
+30. Render service → **Environment**:
+    - change `APP_URL` to `https://connect.immigration.gov.ng`
+    - add `APP_CANONICAL_URL` = `https://connect.immigration.gov.ng`
+
+    then **Save**. From now on:
+    - anyone opening `apps.immigration.gov.ng` in a browser (web app, download page, admin
+      portal) is sent to the same page on `connect.immigration.gov.ng`;
+    - installed Android apps keep working on the old address, learn the new one from the
+      server and use it from the next time they are opened. Officers stay signed in and keep
+      their chats — it is the same service and the same data.
+31. GitHub: change the `LIVE_SERVER_URL` variable to `https://connect.immigration.gov.ng`, run
+    **Mobile & Web CI** again and upload the new APKs on **App downloads**, so new installs
+    start on the new address directly.
+32. Administrators sign in again on the new address (browser sign-ins belong to one address);
+    two-factor settings are unchanged. iPhone users who added the web app to their Home
+    Screen remove the old icon and add it again from `https://connect.immigration.gov.ng`.
+33. Leave `apps.immigration.gov.ng` attached for **at least 3 months**, so phones that were
+    switched off or offline during the move still find their way. Then remove it from
+    **Custom Domains** and DNS.
 
 ## Part G — Switch sign-up codes to SMS (when you have an SMS account)
 
@@ -147,4 +192,5 @@ portal → **Officers** → the officer → **Reset PIN**.
 | `/admin` says the Service Number or password is wrong | The admin is created only if `NIS_ADMIN_*` were set at the first start. Set them under **Environment**, **Save**, wait for the restart. |
 | Officer sees "Service Number not found" | Their number is not in Personnel records, or its status isn't *active* (Part D). |
 | Phone says "App not installed" | Uninstall any older NISconnect test version first. |
-| App says it cannot reach the server | The APK was built without `LIVE_SERVER_URL` (Part E), or the address changed; in the app use **Server address** and enter `https://YOUR-ADDRESS`. |
+| App says it cannot reach the server | The APK was built without `LIVE_SERVER_URL` (Part E), or an old address was removed too early (step 33); in the app use **Server address** and enter `https://YOUR-ADDRESS`. |
+| `apps.immigration.gov.ng` shows a certificate error | DNS isn't pointing at Render yet, or a CAA record blocks the certificate (step 24). Render's **Custom Domains** shows the status. |

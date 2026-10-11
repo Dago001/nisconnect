@@ -52,6 +52,8 @@ jobs:
           echo "--- admin login";       c https://localhost/admin/login | grep -q "Sign in"
           echo "--- admin assets";      c -o /dev/null -w "%{http_code}\n" https://localhost/portal-assets/nis-logo.jpg | grep -q 200
           echo "--- admin CSP";         c -I https://localhost/admin/login | grep -qi "content-security-policy"
+          echo "--- download page";     c https://localhost/download | grep -q "Get NISconnect"
+          echo "--- service meta";      c https://localhost/api/v1/meta | grep -q '"moved_to":null'
           echo "--- API";               c -o /dev/null -w "%{http_code}\n" -H "Accept: application/json" https://localhost/api/v1/users/me | grep -q 401
           echo "--- http -> https";     curl -s -o /dev/null -w "%{http_code}\n" --resolve localhost:80:127.0.0.1 http://localhost/ | grep -qE "30[18]"
           echo "--- websocket (Reverb)"

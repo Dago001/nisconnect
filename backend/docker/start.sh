@@ -66,6 +66,24 @@ if [ "$#" -gt 0 ]; then
     exec "$@"
 fi
 
+# After a move to a new address (APP_CANONICAL_URL, see config/app.php),
+# browsers on any other address are sent there. The API, health check and
+# websocket auth keep answering on the old address, so installed apps work
+# until they switch over (they read the new address from /api/v1/meta).
+case "${APP_CANONICAL_URL:-}" in
+    https://*)
+        canonical_host=$(echo "$APP_CANONICAL_URL" | sed -E 's#^https://([^/:]+).*#\1#')
+        if ! grep -q 'nisconnect-canonical' public/.htaccess; then
+            sed -i "/^    RewriteEngine On/a\\
+\\
+    # nisconnect-canonical: redirect browsers to $canonical_host\\
+    RewriteCond %{HTTP_HOST} !^${canonical_host}(:[0-9]+)?\$ [NC]\\
+    RewriteCond %{REQUEST_URI} !^/(api|up|broadcasting|sanctum)(/|\$)\\
+    RewriteRule ^ https://${canonical_host}%{REQUEST_URI} [R=301,L]" public/.htaccess
+        fi
+        ;;
+esac
+
 sed -ri "s/^Listen .*/Listen ${PORT:-8080}/" /etc/apache2/ports.conf
 sed -ri "s/<VirtualHost \*:[0-9]+>/<VirtualHost *:${PORT:-8080}>/" /etc/apache2/sites-available/000-default.conf
 

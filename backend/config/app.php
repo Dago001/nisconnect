@@ -55,6 +55,15 @@ return [
     'url' => env('APP_URL', 'http://localhost'),
 
     /*
+    | Set only when the service moves to a new address (e.g. from
+    | https://apps.immigration.gov.ng to https://connect.immigration.gov.ng).
+    | The apps learn it from GET /api/v1/meta and switch over by themselves;
+    | the web app and portal redirect visitors on any other address to it
+    | (docker/start.sh). See docs/RENDER.md, "Moving to a new address".
+    */
+    'canonical_url' => env('APP_CANONICAL_URL'),
+
+    /*
     |--------------------------------------------------------------------------
     | Application Timezone
     |--------------------------------------------------------------------------

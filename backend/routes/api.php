@@ -9,12 +9,16 @@ use App\Http\Controllers\Api\V1\DirectoryController;
 use App\Http\Controllers\Api\V1\GroupController;
 use App\Http\Controllers\Api\V1\MediaController;
 use App\Http\Controllers\Api\V1\MessageController;
+use App\Http\Controllers\Api\V1\MetaController;
 use App\Http\Controllers\Api\V1\NotificationController;
 use App\Http\Controllers\Api\V1\SafetyController;
 use App\Http\Controllers\Api\V1\UserController;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('v1')->group(function () {
+
+    // Public service information (e.g. the address the service moved to).
+    Route::get('meta', MetaController::class)->middleware('throttle:60,1');
 
     // --- Public onboarding & auth (rate limited, anti-enumeration) ---------
     Route::prefix('auth')->group(function () {

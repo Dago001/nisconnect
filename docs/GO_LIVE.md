@@ -588,6 +588,40 @@ Database changes are applied automatically when the new app container starts. If
 `WEB_SOURCE=prebuilt`, unzip the new web zip into `web/` first. Phones update through the
 stores. Clean up old images now and then: `docker image prune -f`.
 
+### 27a. Moving to a new address (e.g. apps.immigration.gov.ng → connect.immigration.gov.ng)
+
+The apps follow the move by themselves (they read the new address from
+`https://OLD-DOMAIN/api/v1/meta`), so nobody reinstalls. Keep the old address answering for at
+least 3 months.
+
+1. DNS: point the new name at the server (A record to `SERVER-IP`).
+2. In `infrastructure/production/.env` set `APP_DOMAIN=connect.immigration.gov.ng` and add
+   `APP_CANONICAL_URL=https://connect.immigration.gov.ng`.
+3. At the end of `infrastructure/production/Caddyfile` add a block for the old address. It
+   keeps the API and websockets working there for installed apps and redirects browsers:
+
+   ```
+   apps.immigration.gov.ng {
+   	@ws path /app/* /apps/*
+   	handle @ws {
+   		reverse_proxy reverb:8080
+   	}
+   	@api path /api/* /up /broadcasting/* /sanctum/*
+   	handle @api {
+   		reverse_proxy app:8080
+   	}
+   	handle {
+   		redir https://connect.immigration.gov.ng{uri} permanent
+   	}
+   }
+   ```
+4. `cd infrastructure/production && docker compose up -d --build`.
+5. Build the APK for the new address (`--dart-define=API_BASE_URL=https://connect.immigration.gov.ng/api/v1`,
+   or the `LIVE_SERVER_URL` variable in GitHub) and upload it on **App downloads**.
+6. Administrators sign in again on the new address. iPhone users who added the web app to
+   their Home Screen remove the old icon and add it again from the new address.
+7. After 3 months remove the old block from the Caddyfile and rebuild.
+
 ### 28. Backups
 
 `infrastructure/production/backup.sh` saves the database (`pg_dump`) and the uploaded media,

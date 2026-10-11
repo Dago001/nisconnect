@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'dart:async';
+
 import 'core/config/app_config.dart';
+import 'core/config/server_move.dart';
 import 'core/router/app_router.dart';
 import 'core/storage/secure_storage.dart';
 import 'core/theme/app_colors.dart';
@@ -16,6 +19,8 @@ Future<void> main() async {
     // Storage unavailable: fall back to the build-time server.
   }
   runApp(const ProviderScope(child: NISconnectApp()));
+  // If the service has moved to a new address, remember it for next start.
+  unawaited(followServerMove());
 }
 
 class NISconnectApp extends StatelessWidget {
