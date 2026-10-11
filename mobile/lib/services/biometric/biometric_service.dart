@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:local_auth/local_auth.dart';
 
@@ -8,6 +9,9 @@ class BiometricService {
   final _auth = LocalAuthentication();
 
   Future<bool> isAvailable() async {
+    // local_auth has no browser implementation; calling it on the web throws
+    // and logs noise. Say so up front rather than relying on the catch below.
+    if (kIsWeb) return false;
     try {
       return await _auth.canCheckBiometrics && await _auth.isDeviceSupported();
     } catch (_) {
@@ -16,6 +20,7 @@ class BiometricService {
   }
 
   Future<bool> authenticate({String reason = 'Unlock NISconnect'}) async {
+    if (kIsWeb) return false;
     try {
       return await _auth.authenticate(
         localizedReason: reason,
