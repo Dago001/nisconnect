@@ -27,6 +27,10 @@
         <env name="DB_PORT" value="5432"/>
         <env name="DB_DATABASE" value="nisconnect_testing"/>
         <env name="DB_USERNAME" value="postgres"/>
+        <!-- Default to no password (CI's postgres service trusts local connections).
+             A developer whose local server requires one exports DB_PASSWORD before
+             running the suite; PHPUnit leaves an already-set variable alone, so the
+             password never has to be committed here. -->
         <env name="DB_PASSWORD" value=""/>
         <env name="PERSONNEL_PROVIDER" value="demo"/>
         <env name="PERSONNEL_DEMO_ACCEPT_ANY" value="false"/>
