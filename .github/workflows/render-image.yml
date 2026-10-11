@@ -114,7 +114,8 @@ jobs:
           curl -sI -H 'Host: apps.example.gov.ng' "$M/admin/login?x=1" | grep -qi '^location: https://connect.example.gov.ng/admin/login?x=1'
           # ...while installed apps keep working there and learn the new address.
           curl -fsS -H 'Host: apps.example.gov.ng' $M/api/v1/meta | jq -e '.moved_to == "https://connect.example.gov.ng"'
-          curl -fsS -H 'Host: apps.example.gov.ng' -o /dev/null $M/up
+          test "$(curl -s -H 'Host: apps.example.gov.ng' -o /dev/null -w '%{http_code}' $M/up)" = 200
+          test "$(curl -s -H 'Host: apps.example.gov.ng' -o /dev/null -w '%{http_code}' -H 'Accept: application/json' $M/api/v1/users/me)" = 401
           # The new address itself serves normally.
           curl -fsS -H 'Host: connect.example.gov.ng' $M/ | grep -q flutter_bootstrap.js
           docker rm -f moved

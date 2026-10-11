@@ -70,6 +70,8 @@ fi
 # browsers on any other address are sent there. The API, health check and
 # websocket auth keep answering on the old address, so installed apps work
 # until they switch over (they read the new address from /api/v1/meta).
+# REDIRECT_STATUS is empty only on the first pass: after Laravel's rewrite to
+# index.php the rules run again with REQUEST_URI=/index.php.
 case "${APP_CANONICAL_URL:-}" in
     https://*)
         canonical_host=$(echo "$APP_CANONICAL_URL" | sed -E 's#^https://([^/:]+).*#\1#')
@@ -77,6 +79,7 @@ case "${APP_CANONICAL_URL:-}" in
             sed -i "/^    RewriteEngine On/a\\
 \\
     # nisconnect-canonical: redirect browsers to $canonical_host\\
+    RewriteCond %{ENV:REDIRECT_STATUS} ^\$\\
     RewriteCond %{HTTP_HOST} !^${canonical_host}(:[0-9]+)?\$ [NC]\\
     RewriteCond %{REQUEST_URI} !^/(api|up|broadcasting|sanctum)(/|\$)\\
     RewriteRule ^ https://${canonical_host}%{REQUEST_URI} [R=301,L]" public/.htaccess
