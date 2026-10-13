@@ -1,3 +1,5 @@
+import 'package:firebase_core/firebase_core.dart';
+import 'package:flutter/foundation.dart' show kIsWeb, debugPrint;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -9,6 +11,7 @@ import 'core/router/app_router.dart';
 import 'core/storage/secure_storage.dart';
 import 'core/theme/app_colors.dart';
 import 'core/theme/app_theme.dart';
+import 'services/push/push_service.dart';
 import 'shared/widgets/service_number_watermark.dart';
 
 Future<void> main() async {
@@ -18,9 +21,31 @@ Future<void> main() async {
   } catch (_) {
     // Storage unavailable: fall back to the build-time server.
   }
-  runApp(const ProviderScope(child: NISconnectApp()));
+
+  // Notifications need Firebase, which reads google-services.json (Android) or
+  // GoogleService-Info.plist (iOS). Those are deployment credentials and are
+  // not in the repo, so a build without them must still run — hence the guard.
+  final container = ProviderContainer();
+  await _initialisePush(container);
+
+  runApp(UncontrolledProviderScope(
+    container: container,
+    child: const NISconnectApp(),
+  ));
   // If the service has moved to a new address, remember it for next start.
   unawaited(followServerMove());
+}
+
+Future<void> _initialisePush(ProviderContainer container) async {
+  if (kIsWeb) return; // Web push needs its own config and a service worker.
+  try {
+    await Firebase.initializeApp();
+  } catch (e) {
+    // No platform config bundled: the app runs, notifications stay off.
+    debugPrint('Firebase not configured, notifications disabled: $e');
+    return;
+  }
+  await container.read(pushServiceProvider).initialise();
 }
 
 class NISconnectApp extends StatelessWidget {

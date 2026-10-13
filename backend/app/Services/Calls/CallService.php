@@ -8,6 +8,7 @@ use App\Models\Call;
 use App\Models\CallParticipant;
 use App\Models\Conversation;
 use App\Models\User;
+use App\Services\Push\NotificationService;
 use App\Services\Support\AuditLogger;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
@@ -24,6 +25,7 @@ class CallService
     public function __construct(
         private readonly LiveKitTokenService $tokens,
         private readonly AuditLogger $audit,
+        private readonly NotificationService $notifications,
     ) {}
 
     /**
@@ -80,6 +82,27 @@ class CallService
                 'from' => $caller->display_name,
                 'from_id' => $caller->id,
             ]));
+        }
+
+        // The broadcast above only reaches a device whose app is open and
+        // holding a websocket. Push as well, or a backgrounded phone never
+        // rings. This goes out on the high-priority "call" channel so it wakes
+        // the device and plays the ringtone rather than the message tone.
+        $label = $call->type === 'video' ? 'Incoming video call' : 'Incoming call';
+        foreach (User::whereIn('id', $others)->get() as $callee) {
+            $this->notifications->notify(
+                $callee,
+                'call.incoming',
+                $caller->display_name,
+                $label,
+                [
+                    'call_id' => $call->id,
+                    'type' => $call->type,
+                    'mode' => $call->mode,
+                    'room' => $call->room_name,
+                    'from_id' => $caller->id,
+                ],
+            );
         }
 
         $this->audit->log('call.initiated', actorId: $caller->id, resourceType: 'call', resourceId: $call->id,
