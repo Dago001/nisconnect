@@ -3,6 +3,7 @@
 namespace App\Services\Push;
 
 use Illuminate\Http\Client\Factory as HttpFactory;
+use Illuminate\Support\Facades\Log;
 
 /**
  * Production push adapter. Routes to FCM (Android) or APNs (iOS) HTTP endpoints
@@ -16,6 +17,7 @@ class HttpPushSender implements PushSenderInterface
     public function __construct(
         private readonly HttpFactory $http,
         private readonly array $config,
+        private readonly ?GoogleAccessToken $googleToken = null,
     ) {}
 
     public function send(string $provider, string $token, PushMessage $message): void
@@ -25,8 +27,8 @@ class HttpPushSender implements PushSenderInterface
 
     private function sendFcm(string $token, PushMessage $message): void
     {
-        $endpoint = $this->config['fcm']['endpoint'] ?? null;
-        $key = $this->config['fcm']['key'] ?? null;
+        $endpoint = $this->fcmEndpoint();
+        $key = $this->fcmBearer();
         if (empty($endpoint) || empty($key)) {
             return;
         }
@@ -53,6 +55,45 @@ class HttpPushSender implements PushSenderInterface
                 ],
             ],
         ]);
+    }
+
+    /**
+     * The v1 send endpoint. Derived from the service account's project id when
+     * FCM_ENDPOINT is not set, so the project is configured in one place only.
+     */
+    private function fcmEndpoint(): ?string
+    {
+        $configured = $this->config['fcm']['endpoint'] ?? null;
+        if (! empty($configured)) {
+            return $configured;
+        }
+
+        $projectId = $this->googleToken?->projectId();
+
+        return $projectId === null
+            ? null
+            : "https://fcm.googleapis.com/v1/projects/{$projectId}/messages:send";
+    }
+
+    /**
+     * Bearer token for FCM. Prefers a service-account-minted token, which
+     * refreshes itself; falls back to a statically configured key so an
+     * existing deployment keeps working.
+     */
+    private function fcmBearer(): ?string
+    {
+        if ($this->googleToken?->isConfigured()) {
+            try {
+                return $this->googleToken->get();
+            } catch (\RuntimeException $e) {
+                // Never let a push failure break the request that triggered it.
+                Log::warning('FCM access token unavailable', ['error' => $e->getMessage()]);
+
+                return null;
+            }
+        }
+
+        return $this->config['fcm']['key'] ?? null;
     }
 
     private function sendApns(string $token, PushMessage $message): void

@@ -8,6 +8,7 @@ use App\Services\Otp\NullOtpSender;
 use App\Services\Otp\OtpSenderInterface;
 use App\Services\Otp\SmsOtpSender;
 use App\Services\Otp\TermiiOtpSender;
+use App\Services\Push\GoogleAccessToken;
 use App\Services\Push\HttpPushSender;
 use App\Services\Push\LogPushSender;
 use App\Services\Push\PushSenderInterface;
@@ -28,10 +29,20 @@ class AppServiceProvider extends ServiceProvider
 
             return match ($driver) {
                 'http' => new HttpPushSender(
-                    $app->make(HttpFactory::class), (array) config('services.push')
+                    $app->make(HttpFactory::class),
+                    (array) config('services.push'),
+                    $app->make(GoogleAccessToken::class),
                 ),
                 default => new LogPushSender,
             };
+        });
+
+        $this->app->singleton(GoogleAccessToken::class, function (Application $app) {
+            return new GoogleAccessToken(
+                $app->make(HttpFactory::class),
+                $app->make('cache.store'),
+                config('services.push.fcm.credentials'),
+            );
         });
 
         $this->app->singleton(LiveKitTokenService::class, function () {

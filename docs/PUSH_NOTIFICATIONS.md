@@ -89,15 +89,24 @@ Keep the JSON off the repo.
 
 In `backend/.env`:
 
+Save the JSON **outside the repository** and point the server at it:
+
 ```dotenv
 PUSH_DRIVER=http
-FCM_ENDPOINT=https://fcm.googleapis.com/v1/projects/<PROJECT_ID>/messages:send
-FCM_SERVER_KEY=<OAuth2 access token for that service account>
+FCM_CREDENTIALS=C:/Users/you/.secrets/nisconnect-firebase-admin.json
 
 # iOS, if you are sending to APNs directly rather than through FCM
 APNS_ENDPOINT=https://api.push.apple.com/3/device
 APNS_KEY=<provider token>
 ```
+
+That is all FCM needs. The server signs a JWT with the key, exchanges it for an
+access token, caches it, and refreshes it five minutes before expiry — so
+nothing goes quiet after an hour. The send endpoint is derived from the key's
+own `project_id`, so there is no second place to keep the project name in step.
+
+`FCM_ENDPOINT` and `FCM_SERVER_KEY` still work as an override and a legacy
+fallback, but a service-account key is the supported path.
 
 Then `php artisan config:clear`.
 
@@ -106,10 +115,14 @@ Then `php artisan config:clear`.
 > development — check the log to confirm the payload before involving real
 > devices.
 
-> **FCM v1 access tokens are short-lived (an hour).** `FCM_SERVER_KEY` holding a
-> pasted token works for a smoke test but will stop sending once it expires. For
-> production, mint the token from the service-account JSON on each send, or run
-> a scheduled refresh. This is the one piece of plumbing still to do.
+> Check the credentials reach Google before involving a device:
+>
+> ```bash
+> php artisan tinker --execute="echo app(App\Services\Push\GoogleAccessToken::class)->get();"
+> ```
+>
+> A `ya29....` string means the key works. An exception names the cause — a
+> revoked key, a disabled service account, or clock skew on the server.
 
 ---
 
@@ -131,9 +144,9 @@ message, a repeating ring for a call.
 |---|---|
 | No token row after sign-in | Firebase did not initialise. Run `flutter run` and read the console: a missing `google-services.json` logs "Firebase not configured, notifications disabled" |
 | Token exists, nothing sends | `PUSH_DRIVER` still `log`. Check `storage/logs/laravel.log` — the payload will be there |
-| Sends, device silent | Package name mismatch, or the FCM access token expired |
+| Sends, device silent | Package name mismatch between the app and Firebase |
 | Arrives with the stock Android tone | The channel is missing on the device. Android creates channels at first launch; reinstall after changing them |
-| Worked, then stopped | The FCM v1 access token expired — see the note above |
+| `FCM access token unavailable` in the log | The service-account key was revoked or moved. Check `FCM_CREDENTIALS` still points at a readable file |
 
 ---
 

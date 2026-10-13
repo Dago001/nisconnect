@@ -58,7 +58,13 @@ return [
     'push' => [
         'driver' => env('PUSH_DRIVER', 'log'), // log | http
         'fcm' => [
+            // Path to the Firebase service-account JSON key. Preferred: the
+            // server mints its own short-lived access tokens from it, so
+            // nothing expires in a day. Keep the file outside the repo.
+            'credentials' => env('FCM_CREDENTIALS'),
+            // Optional. Derived from the key's project id when left unset.
             'endpoint' => env('FCM_ENDPOINT'),
+            // Legacy fallback: a manually pasted bearer token. Expires hourly.
             'key' => env('FCM_SERVER_KEY'),
         ],
         'apns' => [
