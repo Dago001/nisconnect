@@ -7,6 +7,22 @@ plugins {
     id("dev.flutter.flutter-gradle-plugin")
 }
 
+// Push notifications need the Google Services plugin to compile
+// android/app/google-services.json into the app. That file carries deployment
+// credentials and is git-ignored, so apply the plugin only when it is present:
+// without this guard every build without the file fails outright, including CI.
+// Firebase.initializeApp() then throws at runtime and the app disables
+// notifications rather than crashing (see lib/main.dart).
+val googleServicesJson = file("google-services.json")
+if (googleServicesJson.exists()) {
+    apply(plugin = "com.google.gms.google-services")
+} else {
+    logger.lifecycle(
+        "NISconnect: android/app/google-services.json not found - building without " +
+            "push notifications. See docs/PUSH_NOTIFICATIONS.md.",
+    )
+}
+
 // Release signing, from (first match wins):
 //  1. android/key.properties (git-ignored): storeFile, storePassword, keyAlias,
 //     keyPassword — storeFile is relative to android/app/ or absolute.
@@ -42,6 +58,10 @@ android {
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
+        // flutter_local_notifications uses java.time, which only exists from
+        // API 26. Desugaring back-fills it so the notification channels still
+        // work on the API 24+ devices this app supports.
+        isCoreLibraryDesugaringEnabled = true
     }
 
     defaultConfig {
@@ -95,4 +115,10 @@ kotlin {
 
 flutter {
     source = "../.."
+}
+
+dependencies {
+    // Supplies the back-ported java.time APIs that core library desugaring
+    // (enabled in compileOptions above) rewrites calls to.
+    coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.5")
 }

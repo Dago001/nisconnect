@@ -28,6 +28,9 @@ plugins {
     // 1.0.0 is the first release that works with Gradle 9; 0.8.0 fails with
     // "Could not initialize class org.gradle.toolchains.foojay.DistributionsKt".
     id("org.gradle.toolchains.foojay-resolver-convention") version "1.0.0"
+    // Compiles google-services.json into the app for Firebase Cloud Messaging.
+    // Declared here, applied in app/build.gradle.kts only when that file exists.
+    id("com.google.gms.google-services") version "4.4.2" apply false
 }
 
 include(":app")

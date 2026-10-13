@@ -49,3 +49,11 @@ mobile/android/key.properties
 **/*.keystore
 *.p12
 *.mobileprovision
+
+# Firebase per-deployment config: carries the project's API keys, and each
+# environment (dev/staging/production) has its own. See docs/PUSH_NOTIFICATIONS.md.
+mobile/android/app/google-services.json
+mobile/ios/Runner/GoogleService-Info.plist
+# Service-account keys used by the backend to send push — never commit.
+**/firebase-adminsdk-*.json
+**/service-account*.json
