@@ -1,0 +1,76 @@
+# Netlify hosts the Flutter web client only. The Laravel API, PostgreSQL and
+# the Reverb websocket server cannot run here — Netlify serves static files —
+# so they stay on Render (render.yaml) or the Docker stack in
+# infrastructure/production. See docs/DEPLOYMENT.md.
+#
+# Build settings in the Netlify UI can be left empty: everything is here.
+
+[build]
+  # Flutter is not preinstalled on Netlify's image, so fetch a pinned SDK,
+  # build, and publish the result. Pinned rather than "stable" so a Flutter
+  # release cannot change the output of a redeploy.
+  command = """
+    set -e
+    FLUTTER_VERSION=3.47.2
+    if [ ! -d "$HOME/flutter" ]; then
+      git clone --depth 1 -b "$FLUTTER_VERSION" https://github.com/flutter/flutter.git "$HOME/flutter"
+    fi
+    export PATH="$HOME/flutter/bin:$PATH"
+    flutter --version
+    cd mobile
+    flutter pub get
+    flutter build web --release \
+      --dart-define=API_BASE_URL=$API_BASE_URL \
+      --dart-define=WS_HOST=$WS_HOST \
+      --dart-define=WS_PORT=$WS_PORT \
+      --dart-define=WS_SCHEME=$WS_SCHEME \
+      --dart-define=WS_KEY=$WS_KEY
+  """
+  publish = "mobile/build/web"
+
+[build.environment]
+  # Netlify's default image is too old for a current Flutter; 20 is supported.
+  NODE_VERSION = "20"
+
+# The app is a single-page app with client-side routing: every deep link has to
+# return index.html or a refresh on /chats gives a 404.
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
+
+# The Dart/CanvasKit bundle is content-hashed by the build, so it can be cached
+# hard. index.html must not be, or returning visitors keep an old build.
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Frame-Options = "DENY"
+    X-Content-Type-Options = "nosniff"
+    Referrer-Policy = "strict-origin-when-cross-origin"
+    # The app is for NIS officers; keep it out of search results.
+    X-Robots-Tag = "noindex, nofollow"
+
+[[headers]]
+  for = "/index.html"
+  [headers.values]
+    Cache-Control = "no-cache, must-revalidate"
+
+[[headers]]
+  for = "/flutter_bootstrap.js"
+  [headers.values]
+    Cache-Control = "no-cache, must-revalidate"
+
+[[headers]]
+  for = "/main.dart.js"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+
+[[headers]]
+  for = "/canvaskit/*"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+
+[[headers]]
+  for = "/assets/*"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
