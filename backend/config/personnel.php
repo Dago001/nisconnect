@@ -7,8 +7,13 @@ return [
     | Personnel provider
     |--------------------------------------------------------------------------
     | Which authorised NIS personnel source to verify Service Numbers against.
-    | Supported: "demo" (development only), "api", "database".
+    | Supported: "demo" (development only), "roster", "api", "database".
     | The demo provider refuses to run when APP_ENV=production.
+    |
+    | "roster" verifies against the officers onboarded in NISconnect itself
+    | (personnel_records, managed at /admin/personnel): only a Service Number an
+    | administrator has already added can register. Use it when the authorised
+    | list is maintained in the admin portal rather than an external NIS system.
     */
     'provider' => env('PERSONNEL_PROVIDER', 'demo'),
 

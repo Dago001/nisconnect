@@ -6,6 +6,7 @@ use App\Personnel\PersonnelProviderInterface;
 use App\Personnel\Providers\ApiPersonnelProvider;
 use App\Personnel\Providers\DatabasePersonnelProvider;
 use App\Personnel\Providers\DemoPersonnelProvider;
+use App\Personnel\Providers\RosterPersonnelProvider;
 use Illuminate\Contracts\Foundation\Application;
 use Illuminate\Database\DatabaseManager;
 use Illuminate\Http\Client\Factory as HttpFactory;
@@ -36,6 +37,7 @@ class PersonnelServiceProvider extends ServiceProvider
                     $app->make(DatabaseManager::class),
                     (array) config('personnel.database'),
                 ),
+                'roster' => new RosterPersonnelProvider,
                 default => throw new InvalidArgumentException(
                     "Unknown personnel provider [{$driver}]."
                 ),
