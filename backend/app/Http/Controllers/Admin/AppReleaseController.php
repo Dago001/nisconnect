@@ -21,12 +21,21 @@ class AppReleaseController extends Controller
 
     public function index(): View
     {
+        $releases = AppRelease::with('uploader')->latest()->orderByDesc('id')->paginate(20);
+
         return view('admin.downloads.index', [
-            'releases' => AppRelease::with('uploader')->latest()->orderByDesc('id')->paginate(20),
+            'releases' => $releases,
             'variants' => AppRelease::VARIANTS,
             'current' => collect(array_keys(AppRelease::VARIANTS))
                 ->mapWithKeys(fn ($v) => [$v => $this->releases->latest($v)?->id])->filter()->flip(),
             'uploadLimit' => ini_get('upload_max_filesize'),
+            // A host that discards its container filesystem between deploys
+            // (Render without a persistent disk) leaves the row behind while
+            // the file goes. The download page then just says "available
+            // soon" with nothing here explaining why, so flag it.
+            'missingFiles' => $releases->getCollection()
+                ->reject(fn (AppRelease $r) => $this->releases->fileExists($r))
+                ->pluck('id')->flip(),
         ]);
     }
 

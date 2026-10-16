@@ -1,7 +1,10 @@
 name: nisconnect
 description: NISconnect — secure internal communication platform for the Nigeria Immigration Service.
 publish_to: "none"
-version: 1.0.0+1
+# The number after + is Android's versionCode / iOS's build number: it must
+# increase on every build handed to anyone, or installing over the previous one
+# fails with "App not installed" and no explanation.
+version: 1.0.1+2
 
 environment:
   sdk: ">=3.4.0 <4.0.0"

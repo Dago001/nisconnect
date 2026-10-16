@@ -40,7 +40,14 @@ return [
 
         'local' => [
             'driver' => 'local',
-            'root' => storage_path('app/private'),
+            // NISCONNECT_STORAGE_ROOT points this at a persistent volume on
+            // hosts whose container filesystem is discarded between deploys
+            // (Render, Fly, Heroku). Without it an uploaded APK or avatar
+            // disappears while its database row remains, so the file is
+            // silently missing rather than visibly broken.
+            'root' => env('NISCONNECT_STORAGE_ROOT')
+                ? rtrim((string) env('NISCONNECT_STORAGE_ROOT'), '/\\').'/private'
+                : storage_path('app/private'),
             'serve' => true,
             'throw' => false,
             'report' => false,

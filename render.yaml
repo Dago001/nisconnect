@@ -46,6 +46,13 @@ services:
         value: log
       - key: FILESYSTEM_DISK
         value: local
+      # Uploads (APK releases, avatars, message media) are written under this
+      # path, which is the mount point of the persistent disk below. Without
+      # it they live in the container filesystem, which Render discards on
+      # every deploy, restart and sleep/wake — the database row survives while
+      # the file does not, so an uploaded APK silently stops being offered.
+      - key: NISCONNECT_STORAGE_ROOT
+        value: /var/data/storage
       - key: PERSONNEL_PROVIDER
         value: demo
       - key: PERSONNEL_DEMO_ACCEPT_ANY
@@ -56,6 +63,13 @@ services:
         value: "true"           # test only: no SMS gateway configured
       - key: PUSH_DRIVER
         value: log
+    # Keeps uploads across deploys and restarts. Render's container filesystem
+    # is discarded otherwise, which leaves AppRelease rows pointing at files
+    # that no longer exist and the download page saying "available soon".
+    disk:
+      name: nisconnect-storage
+      mountPath: /var/data
+      sizeGB: 1
 
 databases:
   - name: nisconnect-db

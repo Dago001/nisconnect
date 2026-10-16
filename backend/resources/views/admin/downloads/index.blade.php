@@ -21,7 +21,12 @@
                         <div class="cell-sub nowrap"><span class="mono" title="SHA-256 {{ $r->sha256 }}">{{ substr($r->sha256, 0, 10) }}…</span></div></td>
                     <td class="small"><div class="nowrap">{{ $r->created_at?->format('d M Y') }}</div><div class="cell-sub">{{ $r->created_at?->format('H:i') }} · {{ $r->uploader?->display_name ?? '—' }}</div></td>
                     <td>
-                        @if(isset($current[$r->id]))
+                        @if(isset($missingFiles[$r->id]))
+                            {{-- Published, but the file is gone from storage, so
+                                 /download cannot offer it. --}}
+                            <x-admin.badge value="missing" tone="danger">File missing</x-admin.badge>
+                            <div class="cell-sub">Upload this build again</div>
+                        @elseif(isset($current[$r->id]))
                             <x-admin.badge value="online" tone="success">Offered now</x-admin.badge>
                         @elseif($r->is_published)
                             <x-admin.badge value="published" tone="info">Published</x-admin.badge>
