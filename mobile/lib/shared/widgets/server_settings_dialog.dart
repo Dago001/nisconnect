@@ -13,11 +13,18 @@ Future<void> showServerSettingsDialog(BuildContext context) {
 }
 
 /// Small text button that opens [showServerSettingsDialog].
+///
+/// Renders nothing when the build names its own server
+/// ([AppConfig.canChangeServer]), so officers never see the setting — the
+/// screen after this one asks for a Service Number and PIN, and a build
+/// pointed at the wrong server would hand them to it.
 class ServerAddressButton extends StatelessWidget {
   const ServerAddressButton({super.key});
 
   @override
   Widget build(BuildContext context) {
+    if (!AppConfig.canChangeServer) return const SizedBox.shrink();
+
     return TextButton.icon(
       onPressed: () => showServerSettingsDialog(context),
       icon: const Icon(Icons.dns_outlined, size: 18),

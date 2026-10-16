@@ -55,6 +55,21 @@ class AppConfig {
     return _apiBaseUrl.isNotEmpty ? _apiBaseUrl : 'http://$_devHost:8000/api/v1';
   }
 
+  /// Whether the officer may point the app at a different server.
+  ///
+  /// A build made for officers names its server with `--dart-define=API_BASE_URL`,
+  /// and they should never see — let alone change — that setting: a wrong or
+  /// hostile address would collect Service Numbers and PINs on the sign-in
+  /// screen that follows. Builds without a baked-in server are development and
+  /// test builds, where switching servers is the point.
+  ///
+  /// Pass `--dart-define=ALLOW_SERVER_OVERRIDE=true` to keep it in a build that
+  /// does name a server, e.g. a pilot that may be re-pointed.
+  static const bool _forceAllowOverride =
+      bool.fromEnvironment('ALLOW_SERVER_OVERRIDE', defaultValue: false);
+
+  static bool get canChangeServer => _forceAllowOverride || _apiBaseUrl.isEmpty;
+
   /// The server root (API base without `/api/v1`), shown in the settings screen.
   static String get serverRoot => apiBaseUrl.replaceFirst(RegExp(r'/api/v1/?$'), '');
 

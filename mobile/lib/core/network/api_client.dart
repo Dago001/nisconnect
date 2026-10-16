@@ -23,8 +23,12 @@ class ApiException implements Exception {
 /// Shown when the request never reached the server.
 String unreachableMessage() {
   final host = Uri.tryParse(AppConfig.serverRoot)?.host ?? AppConfig.serverRoot;
-  return "Can't reach the NISconnect server ($host). Check your internet "
-      'connection, or change the server address under "Server address".';
+  final base = "Can't reach the NISconnect server ($host). Check your internet "
+      'connection';
+  // Only point at the setting when this build actually offers it.
+  return AppConfig.canChangeServer
+      ? '$base, or change the server address under "Server address".'
+      : '$base and try again.';
 }
 
 /// Configured Dio instance: attaches the bearer token, normalises errors, and
