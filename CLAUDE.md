@@ -66,6 +66,10 @@ flutter run --dart-define=API_BASE_URL=http://10.0.2.2:8000/api/v1
   ownership-checked downloads; append-only `audit_logs` / `security_events` (never log
   message content or secrets).
 - Message content is **not** claimed end-to-end encrypted — see `docs/SECURITY.md`.
+- **Two databases**: PostgreSQL (Docker, Render) and MySQL/MariaDB (shared hosting,
+  `docs/SHARED_HOSTING.md`). Use the query builder (`whereLike`, not `'ilike'`); SQL only one
+  of them understands goes behind `App\Support\Sql`. CI runs the suite on both.
+- **PHP 8.3**: shared hosting runs 8.3, so `composer.json` pins `config.platform.php` to 8.3.0.
 - After changing backend code, run `php artisan test` **and** `vendor/bin/pint` before committing.
 
 ## Git / branch

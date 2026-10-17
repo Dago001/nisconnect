@@ -11,6 +11,7 @@ use App\Models\MessageRead;
 use App\Models\User;
 use App\Models\VoiceNote;
 use App\Services\Push\NotificationService;
+use App\Support\Sql;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
@@ -141,7 +142,16 @@ class MessageService
             ->whereIn('conversation_id', $memberConversationIds)
             ->when($conversationId, fn ($q) => $q->where('conversation_id', $conversationId))
             ->when($type, fn ($q) => $q->where('type', $type))
-            ->whereRaw("to_tsvector('simple', coalesce(body, '')) @@ plainto_tsquery('simple', ?)", [$term])
+            ->when(
+                Sql::isPostgres(),
+                fn ($q) => $q->whereRaw("to_tsvector('simple', coalesce(body, '')) @@ plainto_tsquery('simple', ?)", [$term]),
+                // MySQL/MariaDB (shared hosting): every word must appear, as with plainto_tsquery.
+                function ($q) use ($term) {
+                    foreach (preg_split('/\s+/u', trim($term), -1, PREG_SPLIT_NO_EMPTY) as $word) {
+                        $q->whereLike('body', '%'.addcslashes($word, '%_\\').'%');
+                    }
+                },
+            )
             ->with(['sender', 'attachments'])
             ->orderByDesc('created_at')
             ->paginate($perPage);

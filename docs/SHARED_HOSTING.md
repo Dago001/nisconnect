@@ -10,7 +10,7 @@ File Manager and a Terminal: the Nairahost "server3" account that serves
 | https://apps.immigration.gov.ng/download | where officers download the Android app |
 | https://apps.immigration.gov.ng/admin | the Super Admin portal |
 
-The account needs **PostgreSQL**, **PHP 8.3** (8.2 or newer) and a **Terminal** (or SSH).
+The account needs a **MySQL** (or MariaDB) database, **PHP 8.3** (8.2 or newer) and a **Terminal** (or SSH). PostgreSQL also works: see the note in step 8.
 Words in CAPITALS are placeholders for your own values. The account name in the examples
 is `immigrat`; use yours if it differs.
 
@@ -26,11 +26,11 @@ is `immigrat`; use yours if it differs.
 ## Step 1 — Prepare the hosting account (10 minutes, in the control panel)
 
 1. **PHP version:** open **Select PHP Version** (or **PHP Selector**), choose **8.3** and
-   make sure these extensions are ticked: `pdo_pgsql`, `pgsql`, `mbstring`, `openssl`,
+   make sure these extensions are ticked: `pdo_mysql`, `mbstring`, `openssl`,
    `fileinfo`, `curl`, `dom`, `tokenizer`, `iconv`. Under **Options** set
    `upload_max_filesize` and `post_max_size` to `64M` and `memory_limit` to `256M`
    (Android app files are about 20 MB). Save.
-2. **Database:** open **PostgreSQL Databases** (or **PostgreSQL Management**) and create a
+2. **Database:** open **MySQL Databases** (or **MySQL Management**) and create a
    database and a user with a strong password, and give the user all privileges on the
    database. Write down the **full** names the panel shows: they usually start with the
    account name, e.g. `immigrat_nisconnect` and `immigrat_nis`.
@@ -67,7 +67,8 @@ is `immigrat`; use yours if it differs.
    ```
 
    Change `DB_DATABASE`, `DB_USERNAME` and `DB_PASSWORD`. Save with **Ctrl+O**, **Enter**,
-   then **Ctrl+X**. (No Terminal editor? Edit `.env` in File Manager; turn on "show hidden
+   then **Ctrl+X**. (Using a PostgreSQL database instead? Also set `DB_CONNECTION=pgsql`
+   and `DB_PORT=5432`.) (No Terminal editor? Edit `.env` in File Manager; turn on "show hidden
    files" to see it.)
 9. Create the application key and the database tables:
 

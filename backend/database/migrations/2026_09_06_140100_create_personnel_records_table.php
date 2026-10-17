@@ -1,8 +1,8 @@
 <?php
 
+use App\Support\Sql;
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
 /**
@@ -41,7 +41,7 @@ return new class extends Migration
             $table->index('command');
         });
 
-        DB::statement("ALTER TABLE personnel_records ADD CONSTRAINT personnel_service_number_digits CHECK (service_number ~ '^[0-9]+$')");
+        Sql::addDigitsOnlyCheck('personnel_records', 'service_number', 'personnel_service_number_digits');
 
         // Now that personnel_records exists, wire the FK from users.
         Schema::table('users', function (Blueprint $table) {

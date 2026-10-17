@@ -48,3 +48,52 @@ jobs:
       - name: Run tests
         # DB connection comes from phpunit.xml (pgsql @ 127.0.0.1, no password).
         run: php artisan test
+
+  # Shared hosting (docs/SHARED_HOSTING.md) runs on MySQL/MariaDB with PHP 8.3:
+  # the same suite must pass there too.
+  test-mariadb:
+    runs-on: ubuntu-latest
+
+    services:
+      mariadb:
+        image: mariadb:10.11
+        env:
+          MARIADB_DATABASE: nisconnect_testing
+          MARIADB_USER: nis
+          MARIADB_PASSWORD: nis-pass
+          MARIADB_ROOT_PASSWORD: root-pass
+        ports: ["3306:3306"]
+        options: >-
+          --health-cmd "healthcheck.sh --connect --innodb_initialized"
+          --health-interval 5s --health-timeout 5s --health-retries 20
+
+    defaults:
+      run:
+        working-directory: backend
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: "8.3"
+          extensions: pdo, pdo_mysql, mbstring, intl, zip
+          coverage: none
+
+      - name: Install dependencies
+        run: composer install --prefer-dist --no-interaction --no-progress
+
+      - name: Prepare environment
+        run: |
+          cp .env.example .env
+          php artisan key:generate
+
+      - name: Run tests
+        env:
+          DB_CONNECTION: mysql
+          DB_HOST: 127.0.0.1
+          DB_PORT: "3306"
+          DB_DATABASE: nisconnect_testing
+          DB_USERNAME: nis
+          DB_PASSWORD: nis-pass
+        run: php artisan test

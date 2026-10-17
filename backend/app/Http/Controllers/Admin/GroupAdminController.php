@@ -34,7 +34,7 @@ class GroupAdminController extends Controller
         $query = Group::query()->withCount('members');
         if ($q = trim((string) $request->query('q'))) {
             $like = '%'.addcslashes($q, '%_\\').'%';
-            $query->where(fn ($w) => $w->where('name', 'ilike', $like)->orWhere('description', 'ilike', $like));
+            $query->where(fn ($w) => $w->whereLike('name', $like)->orWhereLike('description', $like));
         }
         if (array_key_exists((string) $request->query('type'), self::TYPES)) {
             $query->where('type', $request->query('type'));

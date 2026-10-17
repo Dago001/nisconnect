@@ -224,10 +224,10 @@ class OfficerController extends Controller
             $like = '%'.addcslashes($term, '%_\\').'%';
             $query->where(function ($q) use ($like) {
                 $q->where('service_number', 'like', $like)
-                    ->orWhere('display_name', 'ilike', $like)
-                    ->orWhereHas('personnelRecord', fn ($p) => $p->where('surname', 'ilike', $like)
-                        ->orWhere('first_name', 'ilike', $like)
-                        ->orWhere('other_name', 'ilike', $like));
+                    ->orWhereLike('display_name', $like)
+                    ->orWhereHas('personnelRecord', fn ($p) => $p->whereLike('surname', $like)
+                        ->orWhereLike('first_name', $like)
+                        ->orWhereLike('other_name', $like));
             });
         }
         if (in_array($state = $request->query('state'), self::STATES, true)) {

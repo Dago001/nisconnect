@@ -1,5 +1,6 @@
 <?php
 
+use App\Support\Sql;
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\DB;
@@ -28,7 +29,10 @@ return new class extends Migration
         });
 
         // Full-text search index over message bodies (GIN) for indexed search.
-        DB::statement("CREATE INDEX messages_body_fts ON messages USING gin (to_tsvector('simple', coalesce(body, '')))");
+        // MySQL/MariaDB (shared hosting) search with LIKE instead; see MessageService.
+        if (Sql::isPostgres()) {
+            DB::statement("CREATE INDEX messages_body_fts ON messages USING gin (to_tsvector('simple', coalesce(body, '')))");
+        }
 
         Schema::create('message_attachments', function (Blueprint $table) {
             $table->uuid('id')->primary();

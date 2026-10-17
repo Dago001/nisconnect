@@ -152,7 +152,7 @@ class AuditController extends Controller
     {
         $q = AuditLog::query();
         if (filled($f['action'] ?? null)) {
-            $q->where('action', 'ilike', '%'.$this->escapeLike($f['action']).'%');
+            $q->whereLike('action', '%'.$this->escapeLike($f['action']).'%');
         }
         if (filled($f['actor'] ?? null)) {
             $q->whereIn('actor_id', User::withTrashed()->where('service_number', $f['actor'])->select('id'));
@@ -175,7 +175,7 @@ class AuditController extends Controller
             $q->where('severity', $f['severity']);
         }
         if (filled($f['event'] ?? null)) {
-            $q->where('event', 'ilike', '%'.$this->escapeLike($f['event']).'%');
+            $q->whereLike('event', '%'.$this->escapeLike($f['event']).'%');
         }
         if (filled($f['officer'] ?? null)) {
             $q->whereIn('user_id', User::withTrashed()->where('service_number', $f['officer'])->select('id'));

@@ -36,7 +36,7 @@ class ChannelAdminController extends Controller
         ]);
         if ($q = trim((string) $request->query('q'))) {
             $like = '%'.addcslashes($q, '%_\\').'%';
-            $query->where(fn ($w) => $w->where('name', 'ilike', $like)->orWhere('description', 'ilike', $like));
+            $query->where(fn ($w) => $w->whereLike('name', $like)->orWhereLike('description', $like));
         }
         $channels = $query->orderBy('name')->paginate(25)->withQueryString();
 

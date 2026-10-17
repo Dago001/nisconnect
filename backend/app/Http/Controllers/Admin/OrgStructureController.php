@@ -57,7 +57,7 @@ class OrgStructureController extends Controller
         }
         if ($q = trim((string) $request->query('q'))) {
             $like = '%'.addcslashes($q, '%_\\').'%';
-            $query->where(fn ($w) => $w->where("$table.name", 'ilike', $like)->orWhere("$table.code", 'ilike', $like));
+            $query->where(fn ($w) => $w->whereLike("$table.name", $like)->orWhereLike("$table.code", $like));
         }
         $items = $query->orderBy("$table.name")->paginate(25)->withQueryString();
 

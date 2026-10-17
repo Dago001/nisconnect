@@ -50,15 +50,15 @@ class DirectoryController extends Controller
         if (! empty($data['q'])) {
             $term = '%'.str_replace(['%', '_'], ['\%', '\_'], $data['q']).'%';
             $query->where(function ($q) use ($term) {
-                $q->where('personnel_records.surname', 'ilike', $term)
-                    ->orWhere('personnel_records.first_name', 'ilike', $term)
-                    ->orWhere('personnel_records.other_name', 'ilike', $term)
-                    ->orWhere('users.service_number', 'ilike', $term);
+                $q->whereLike('personnel_records.surname', $term)
+                    ->orWhereLike('personnel_records.first_name', $term)
+                    ->orWhereLike('personnel_records.other_name', $term)
+                    ->orWhereLike('users.service_number', $term);
             });
         }
         foreach (['directorate', 'department', 'command', 'rank'] as $field) {
             if (! empty($data[$field])) {
-                $query->where("personnel_records.$field", 'ilike', '%'.$data[$field].'%');
+                $query->whereLike("personnel_records.$field", '%'.$data[$field].'%');
             }
         }
 

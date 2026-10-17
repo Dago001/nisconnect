@@ -30,7 +30,7 @@ class DeviceLimitService
         $others = Device::where('user_id', $user->id)
             ->where('status', Device::STATUS_ACTIVE)
             ->where('id', '!=', $current->id)
-            ->orderByRaw('last_active_at DESC NULLS LAST')
+            ->orderByRaw('last_active_at IS NULL')->orderByDesc('last_active_at')
             ->orderByDesc('created_at')
             ->get();
 

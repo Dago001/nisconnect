@@ -205,10 +205,10 @@ class PersonnelController extends Controller
         if ($q = trim((string) $request->query('q'))) {
             $like = '%'.addcslashes($q, '%_\\').'%';
             $query->where(function ($w) use ($like, $q) {
-                $w->where('surname', 'ilike', $like)
-                    ->orWhere('first_name', 'ilike', $like)
-                    ->orWhere('other_name', 'ilike', $like)
-                    ->orWhereRaw("(first_name || ' ' || surname) ilike ?", [$like]);
+                $w->whereLike('surname', $like)
+                    ->orWhereLike('first_name', $like)
+                    ->orWhereLike('other_name', $like)
+                    ->orWhereRaw("lower(concat(first_name, ' ', surname)) like ?", [mb_strtolower($like)]);
                 if (ctype_digit($q)) {
                     $w->orWhere('service_number', 'like', $q.'%');
                 }

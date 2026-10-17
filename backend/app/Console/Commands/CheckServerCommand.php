@@ -24,8 +24,8 @@ class CheckServerCommand extends Command
 
     protected $description = 'Check that this server has what NISconnect needs (PHP, extensions, database, folders)';
 
-    /** What the code and its dependencies use (composer check-platform-reqs), plus pdo_pgsql. */
-    public const EXTENSIONS = ['pdo_pgsql', 'openssl', 'mbstring', 'fileinfo', 'curl', 'dom', 'tokenizer', 'iconv'];
+    /** What the code and its dependencies use (composer check-platform-reqs) (the database driver is checked separately). */
+    public const EXTENSIONS = ['openssl', 'mbstring', 'fileinfo', 'curl', 'dom', 'tokenizer', 'iconv'];
 
     private int $failures = 0;
 
@@ -52,10 +52,15 @@ class CheckServerCommand extends Command
         $provider = (string) config('personnel.provider');
         $this->report($provider !== 'demo', "Personnel source: {$provider}", 'The demo source lets anyone register. Set PERSONNEL_PROVIDER=roster in .env.');
 
+        $pdo = ['pgsql' => 'pdo_pgsql', 'mysql' => 'pdo_mysql', 'mariadb' => 'pdo_mysql'][config('database.connections.'.config('database.default').'.driver')] ?? null;
+        if ($pdo) {
+            $this->report(extension_loaded($pdo), "PHP extension {$pdo}", "Turn on \"{$pdo}\" in the hosting panel's PHP extensions list.");
+        }
+
         try {
             $driver = DB::connection()->getDriverName();
             DB::connection()->getPdo();
-            $this->report($driver === 'pgsql', "Database connection ({$driver})", 'NISconnect needs PostgreSQL: set DB_CONNECTION=pgsql in .env.');
+            $this->report(in_array($driver, ['pgsql', 'mysql', 'mariadb'], true), "Database connection ({$driver})", 'NISconnect needs PostgreSQL or MySQL/MariaDB: set DB_CONNECTION in .env.');
 
             $migrator->setConnection(config('database.default'));
             if ($migrator->repositoryExists()) {

@@ -26,7 +26,7 @@ class DeviceAdminController extends Controller
         if ($term = trim((string) $request->query('q', ''))) {
             $like = '%'.addcslashes($term, '%_\\').'%';
             $query->whereHas('user', fn ($u) => $u->where('service_number', 'like', $like)
-                ->orWhere('display_name', 'ilike', $like));
+                ->orWhereLike('display_name', $like));
         }
         if (in_array($platform = $request->query('platform'), self::PLATFORMS, true)) {
             $query->where('platform', $platform);
@@ -35,7 +35,7 @@ class DeviceAdminController extends Controller
             $query->where('status', $status);
         }
 
-        $devices = $query->orderByRaw('last_active_at DESC NULLS LAST')->orderBy('id')
+        $devices = $query->orderByRaw('last_active_at IS NULL')->orderByDesc('last_active_at')->orderBy('id')
             ->paginate(25)->withQueryString();
 
         return view('admin.devices.index', [

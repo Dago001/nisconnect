@@ -41,7 +41,7 @@ class ReportController extends Controller
             ->when($filters['target_type'] ?? null, fn ($q, $t) => $q->where('target_type', $t))
             ->when($filters['q'] ?? null, fn ($q, $term) => $q->where(function ($q) use ($term) {
                 $like = '%'.addcslashes($term, '%_\\').'%';
-                $q->where('reason', 'ilike', $like)->orWhere('details', 'ilike', $like);
+                $q->whereLike('reason', $like)->orWhereLike('details', $like);
             }));
 
         $counts = (clone $base)->select('status', DB::raw('count(*) as c'))->groupBy('status')->pluck('c', 'status');

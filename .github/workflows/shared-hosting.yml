@@ -26,16 +26,18 @@ jobs:
     permissions:
       contents: write
     services:
-      postgres:
-        image: postgres:16
+      # MariaDB, as on the hosting account's MySQL Databases page.
+      mariadb:
+        image: mariadb:10.11
         env:
-          POSTGRES_USER: immigrat_nis
-          POSTGRES_PASSWORD: Ci-Db-Passw0rd
-          POSTGRES_DB: immigrat_nisconnect
-        ports: ["5432:5432"]
+          MARIADB_DATABASE: immigrat_nisconnect
+          MARIADB_USER: immigrat_nis
+          MARIADB_PASSWORD: Ci-Db-Passw0rd
+          MARIADB_ROOT_PASSWORD: Ci-Root-Passw0rd
+        ports: ["3306:3306"]
         options: >-
-          --health-cmd "pg_isready -U immigrat_nis -d immigrat_nisconnect" --health-interval 5s
-          --health-timeout 5s --health-retries 10
+          --health-cmd "healthcheck.sh --connect --innodb_initialized"
+          --health-interval 5s --health-timeout 5s --health-retries 20
     steps:
       - uses: actions/checkout@v4
         with:
@@ -50,7 +52,7 @@ jobs:
       - name: PHP 8.3 under Apache, as on the hosting account
         run: |
           sudo apt-get update -q
-          sudo apt-get install -y -q apache2 libapache2-mod-php8.3 php8.3-cli php8.3-pgsql \
+          sudo apt-get install -y -q apache2 libapache2-mod-php8.3 php8.3-cli php8.3-mysql mariadb-client \
             php8.3-mbstring php8.3-xml php8.3-curl php8.3-zip php8.3-intl zip unzip
           sudo update-alternatives --set php /usr/bin/php8.3
           php -v
@@ -106,9 +108,9 @@ jobs:
           # Browsers arriving on http are sent to https.
           test "$(curl -s -o /dev/null -w '%{http_code} %{redirect_url}' -H Host:apps.test http://127.0.0.1/admin/login)" \
             = "301 https://apps.test/admin/login"
-          PGPASSWORD=Ci-Db-Passw0rd psql -h 127.0.0.1 -U immigrat_nis immigrat_nisconnect -c \
+          mysql -h 127.0.0.1 -u immigrat_nis -pCi-Db-Passw0rd immigrat_nisconnect -e \
             "insert into personnel_records (id, service_number, surname, first_name, status, source, created_at, updated_at)
-             values (gen_random_uuid(), '001234', 'Bello', 'Ada', 'active', 'admin', now(), now())"
+             values (uuid(), '001234', 'Bello', 'Ada', 'active', 'admin', now(), now())"
           infrastructure/shared-hosting/smoke-test.sh http://127.0.0.1 001234
 
       - name: The first administrator signs in and must change the password

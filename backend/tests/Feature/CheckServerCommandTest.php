@@ -9,17 +9,22 @@ class CheckServerCommandTest extends TestCase
 {
     use RefreshDatabase;
 
+    private array $transactOn;
+
     /** The last test points the default connection elsewhere; keep the rollback on the real one. */
-    protected $connectionsToTransact = ['pgsql'];
+    protected function connectionsToTransact(): array
+    {
+        return $this->transactOn ??= [config('database.default')];
+    }
 
     public function test_a_correctly_configured_server_passes(): void
     {
         config(['app.debug' => false, 'personnel.provider' => 'roster']);
 
         $this->artisan('nisconnect:check-server')
-            ->expectsOutputToContain('Database connection (pgsql)')
+            ->expectsOutputToContain('Database connection ('.config('database.connections.'.config('database.default').'.driver').')')
             ->expectsOutputToContain('Database tables are up to date')
-            ->expectsOutputToContain('PHP extension pdo_pgsql')
+            ->expectsOutputToContain('PHP extension pdo_')
             ->expectsOutputToContain('This server can run NISconnect.')
             ->assertSuccessful();
     }
@@ -40,7 +45,7 @@ class CheckServerCommandTest extends TestCase
         config([
             'app.debug' => false,
             'personnel.provider' => 'roster',
-            'database.connections.unreachable' => array_merge(config('database.connections.pgsql'), [
+            'database.connections.unreachable' => array_merge(config('database.connections.'.config('database.default')), [
                 'port' => 1,
                 'password' => 'never-print-this',
             ]),

@@ -1,8 +1,8 @@
 <?php
 
+use App\Support\Sql;
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
@@ -36,7 +36,7 @@ return new class extends Migration
         });
 
         // Digit-only guarantee at the database layer.
-        DB::statement("ALTER TABLE users ADD CONSTRAINT users_service_number_digits CHECK (service_number ~ '^[0-9]+$')");
+        Sql::addDigitsOnlyCheck('users', 'service_number', 'users_service_number_digits');
 
         Schema::create('password_reset_tokens', function (Blueprint $table) {
             $table->string('email')->primary();
