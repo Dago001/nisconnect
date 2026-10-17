@@ -78,11 +78,12 @@ jobs:
       - run: flutter pub get
       # The live server the downloadable APK talks to out of the box: the
       # repository variable LIVE_SERVER_URL (Settings > Secrets and variables >
-      # Actions > Variables), e.g. https://nisconnect.onrender.com. A manual
-      # run's api_base_url input wins. Officers can still change it in the app.
+      # Actions > Variables), otherwise the live address officers use today.
+      # A manual run's api_base_url input wins. Officer builds have no
+      # "Server address" control; a server move is followed via /api/v1/meta.
       - name: Live server address
         env:
-          LIVE_SERVER_URL: ${{ vars.LIVE_SERVER_URL }}
+          LIVE_SERVER_URL: ${{ vars.LIVE_SERVER_URL || 'https://apps.immigration.gov.ng' }}
         run: |
           if [ -z "$(echo "$BACKEND_DEFINES" | tr -d ' ')" ] && [ -n "$LIVE_SERVER_URL" ]; then
             root="${LIVE_SERVER_URL%/}"
