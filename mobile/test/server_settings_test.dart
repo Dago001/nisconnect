@@ -58,10 +58,20 @@ void main() {
       expect(AppConfig.wsPort, 8080);
     });
 
-    test('a server chosen in the app still wins', () {
+    test('the hosted web app always talks to its own server', () {
       AppConfig.debugPageUri = Uri.parse('https://connect.example.gov.ng/');
+      // A server saved earlier in this browser is ignored, and the
+      // "Server address" setting is hidden from officers.
+      AppConfig.serverOverride = 'https://other.example.gov.ng';
+      expect(AppConfig.apiBaseUrl, 'https://connect.example.gov.ng/api/v1');
+      expect(AppConfig.canChangeServer, isFalse);
+    });
+
+    test('a server chosen in the app still wins during local development', () {
+      AppConfig.debugPageUri = Uri.parse('http://localhost:5000/');
       AppConfig.serverOverride = 'https://other.example.gov.ng';
       expect(AppConfig.apiBaseUrl, 'https://other.example.gov.ng/api/v1');
+      expect(AppConfig.canChangeServer, isTrue);
     });
   });
 }

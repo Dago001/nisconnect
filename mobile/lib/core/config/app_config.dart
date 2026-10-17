@@ -42,9 +42,14 @@ class AppConfig {
   }
 
   /// The runtime server: the user's override, else the web page's origin.
+  ///
+  /// The web app served from a real domain always talks to that domain; a
+  /// saved override (e.g. from an earlier test build) is ignored there.
   static Uri? get _override {
+    final page = _pageOrigin;
+    if (page != null && !_forceAllowOverride) return page;
     final value = serverOverride;
-    if (value == null || value.isEmpty) return _pageOrigin;
+    if (value == null || value.isEmpty) return page;
     return Uri.tryParse(value);
   }
 
@@ -63,12 +68,16 @@ class AppConfig {
   /// screen that follows. Builds without a baked-in server are development and
   /// test builds, where switching servers is the point.
   ///
+  /// The web app served from a real domain is in the same position: the
+  /// server that sent the page is the server, so the setting is hidden there.
+  ///
   /// Pass `--dart-define=ALLOW_SERVER_OVERRIDE=true` to keep it in a build that
   /// does name a server, e.g. a pilot that may be re-pointed.
   static const bool _forceAllowOverride =
       bool.fromEnvironment('ALLOW_SERVER_OVERRIDE', defaultValue: false);
 
-  static bool get canChangeServer => _forceAllowOverride || _apiBaseUrl.isEmpty;
+  static bool get canChangeServer =>
+      _forceAllowOverride || (_apiBaseUrl.isEmpty && _pageOrigin == null);
 
   /// The server root (API base without `/api/v1`), shown in the settings screen.
   static String get serverRoot => apiBaseUrl.replaceFirst(RegExp(r'/api/v1/?$'), '');
