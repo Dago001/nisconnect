@@ -34,7 +34,7 @@ jobs:
           POSTGRES_DB: immigrat_nisconnect
         ports: ["5432:5432"]
         options: >-
-          --health-cmd "pg_isready -U immigrat_nis" --health-interval 5s
+          --health-cmd "pg_isready -U immigrat_nis -d immigrat_nisconnect" --health-interval 5s
           --health-timeout 5s --health-retries 10
     steps:
       - uses: actions/checkout@v4
@@ -120,7 +120,10 @@ jobs:
             --data-urlencode "_token=$TOKEN" --data-urlencode service_number=100001 \
             --data-urlencode 'password=Ci-Passw0rd!long' | tee /tmp/login
           grep -q '^302' /tmp/login
-          curl -sS "${O[@]}" -c $J -b $J -L $B/admin | grep -qi 'password'
+          # /admin sends a first-time administrator to the change-password page.
+          NEXT=$(curl -sS "${O[@]}" -c $J -b $J -o /dev/null -w '%{redirect_url}' $B/admin)
+          echo "$NEXT" | grep -q '/admin/account/password'
+          curl -sS "${O[@]}" -c $J -b $J "$B/${NEXT#*://*/}" | grep -qi 'password'
 
       - name: The scheduler runs from cron
         run: sudo -u www-data sh -c 'cd /home/immigrat/nisconnect && php artisan schedule:run' | tee /dev/stderr | grep -q scheduler-heartbeat
