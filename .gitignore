@@ -57,3 +57,4 @@ mobile/ios/Runner/GoogleService-Info.plist
 # Service-account keys used by the backend to send push — never commit.
 **/firebase-adminsdk-*.json
 **/service-account*.json
+/dist/

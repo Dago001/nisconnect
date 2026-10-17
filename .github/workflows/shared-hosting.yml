@@ -1,0 +1,146 @@
+name: Shared hosting package
+
+# Builds the upload package for shared hosting (docs/SHARED_HOSTING.md), then
+# installs it the way the guide says -- PHP 8.3 under Apache with only
+# .htaccess, public_html a link to the package's public folder -- and checks
+# the web app, admin portal, download page, API and registration over HTTP.
+
+on:
+  push:
+    branches: ["**"]
+    paths:
+      - "backend/**"
+      - "mobile/lib/**"
+      - "mobile/pubspec.*"
+      - "mobile/web/**"
+      - "infrastructure/shared-hosting/**"
+      - ".github/workflows/shared-hosting.yml"
+  workflow_dispatch:
+
+env:
+  FLUTTER_VERSION: "3.47.6"
+
+jobs:
+  package:
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: immigrat_nis
+          POSTGRES_PASSWORD: Ci-Db-Passw0rd
+          POSTGRES_DB: immigrat_nisconnect
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U immigrat_nis" --health-interval 5s
+          --health-timeout 5s --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          cache: true
+
+      - name: PHP 8.3 under Apache, as on the hosting account
+        run: |
+          sudo apt-get update -q
+          sudo apt-get install -y -q apache2 libapache2-mod-php8.3 php8.3-cli php8.3-pgsql \
+            php8.3-mbstring php8.3-xml php8.3-curl php8.3-zip php8.3-intl zip unzip
+          sudo update-alternatives --set php /usr/bin/php8.3
+          php -v
+
+      - name: Build the package
+        run: infrastructure/shared-hosting/build-package.sh dist
+
+      - name: Install it as the guide says
+        run: |
+          set -ex
+          H=/home/immigrat
+          sudo mkdir -p $H/domains/apps.test && sudo chown -R "$USER" $H
+          cd $H && unzip -q "$GITHUB_WORKSPACE"/dist/nisconnect-server-*.zip
+          cd $H/nisconnect
+          cp .env.example .env
+          sed -i 's/^DB_HOST=.*/DB_HOST=127.0.0.1/; s/^DB_DATABASE=.*/DB_DATABASE=immigrat_nisconnect/;
+                  s/^DB_USERNAME=.*/DB_USERNAME=immigrat_nis/; s/^DB_PASSWORD=.*/DB_PASSWORD=Ci-Db-Passw0rd/;
+                  s#^APP_URL=.*#APP_URL=https://apps.test#' .env
+          # Plain http in CI: let curl send the session cookie back.
+          sed -i 's/^SESSION_SECURE_COOKIE=.*/SESSION_SECURE_COOKIE=false/' .env
+          php artisan key:generate --force
+          php artisan migrate --force --seed
+          php artisan nisconnect:make-admin 100001 --name="CI Administrator" --password='Ci-Passw0rd!long'
+          php artisan config:cache && php artisan route:cache && php artisan view:cache
+          php artisan nisconnect:check-server
+          ln -s $H/nisconnect/public $H/domains/apps.test/public_html
+          # Shared hosts run PHP as the account owner; here Apache's user stands in.
+          sudo chown -R www-data:www-data $H
+
+      - name: Serve it with Apache and .htaccess only
+        run: |
+          set -ex
+          sudo tee /etc/apache2/sites-available/apps-test.conf >/dev/null <<'EOF'
+          <VirtualHost *:80>
+              ServerName apps.test
+              DocumentRoot /home/immigrat/domains/apps.test/public_html
+              <Directory /home/immigrat>
+                  Options SymLinksIfOwnerMatch
+                  AllowOverride All
+                  Require all granted
+              </Directory>
+          </VirtualHost>
+          EOF
+          sudo a2enmod rewrite headers
+          sudo a2dissite 000-default && sudo a2ensite apps-test
+          sudo systemctl restart apache2
+
+      - name: Check it over HTTP
+        env:
+          CURL_OPTS: -H X-Forwarded-Proto:https -H Host:apps.test
+        run: |
+          set -ex
+          # Browsers arriving on http are sent to https.
+          test "$(curl -s -o /dev/null -w '%{http_code} %{redirect_url}' -H Host:apps.test http://127.0.0.1/admin/login)" \
+            = "301 https://apps.test/admin/login"
+          PGPASSWORD=Ci-Db-Passw0rd psql -h 127.0.0.1 -U immigrat_nis immigrat_nisconnect -c \
+            "insert into personnel_records (id, service_number, surname, first_name, status, source, created_at, updated_at)
+             values (gen_random_uuid(), '001234', 'Bello', 'Ada', 'active', 'admin', now(), now())"
+          infrastructure/shared-hosting/smoke-test.sh http://127.0.0.1 001234
+
+      - name: The first administrator signs in and must change the password
+        run: |
+          set -ex
+          B=http://127.0.0.1; O=(-H X-Forwarded-Proto:https -H Host:apps.test); J=/tmp/cookies
+          TOKEN=$(curl -fsS "${O[@]}" -c $J -b $J $B/admin/login | grep -o 'name="_token" value="[^"]*"' | head -1 | sed 's/.*value="//;s/"$//')
+          curl -sS "${O[@]}" -c $J -b $J -o /dev/null -w '%{http_code}\n' -X POST $B/admin/login \
+            --data-urlencode "_token=$TOKEN" --data-urlencode service_number=100001 \
+            --data-urlencode 'password=Ci-Passw0rd!long' | tee /tmp/login
+          grep -q '^302' /tmp/login
+          curl -sS "${O[@]}" -c $J -b $J -L $B/admin | grep -qi 'password'
+
+      - name: The scheduler runs from cron
+        run: sudo -u www-data sh -c 'cd /home/immigrat/nisconnect && php artisan schedule:run' | tee /dev/stderr | grep -q scheduler-heartbeat
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: nisconnect-server-package
+          path: dist/nisconnect-server-*.zip
+          retention-days: 30
+
+      # A download link for the hosting account's Terminal (wget). Needs
+      # Settings > Actions > General > Workflow permissions: Read and write.
+      - name: Publish the package
+        if: github.ref_name == github.event.repository.default_branch
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          cp dist/nisconnect-server-*.zip dist/nisconnect-server.zip
+          gh release delete server-package --yes --cleanup-tag || true
+          gh release create server-package dist/nisconnect-server.zip --prerelease \
+            --title "NISconnect server package (shared hosting)" \
+            --notes "Built from ${GITHUB_SHA::7}. Install with docs/SHARED_HOSTING.md."
