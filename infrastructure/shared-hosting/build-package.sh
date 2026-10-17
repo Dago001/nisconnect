@@ -36,6 +36,7 @@ echo "==> Building the officer web app"
 cp -R "$work/mobile/build/web/." "$app/public/"
 { cat "$root/infrastructure/shared-hosting/htaccess-web.conf"; cat "$root/backend/public/.htaccess"; } \
     > "$app/public/.htaccess"
+cp "$root/infrastructure/shared-hosting/user.ini" "$app/public/.user.ini"
 
 echo "==> Tidying"
 cp "$root/infrastructure/shared-hosting/env.example" "$app/.env.example"

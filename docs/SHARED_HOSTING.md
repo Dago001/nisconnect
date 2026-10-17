@@ -199,5 +199,5 @@ delete `nisconnect-previous` and the zip.
 | Certificate or "not secure" warning | Step 3: issue the SSL certificate for apps.immigration.gov.ng. |
 | You changed `.env` but nothing happened | Run `php artisan config:cache` again. |
 | Officer sees "Service Number not found" | Their number isn't in Personnel records, or its status isn't *active* (Step 6). |
-| Uploading an app file fails | Raise `upload_max_filesize` and `post_max_size` (step 1). |
+| Uploading an app file fails ("413 Upload too large") | The package's `public/.user.ini` raises the limit to 64 MB within about 5 minutes. If the host ignores it, raise `upload_max_filesize` and `post_max_size` in the panel (step 1). |
 | Phone says "App not installed" | Uninstall any older NISconnect test version first. |
